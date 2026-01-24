@@ -8,9 +8,59 @@ const { parseTableToJSON, extractInsightLogic } = require("./helper.js");
 const { Worker } = require("worker_threads");
 const crypto = require("crypto");
 const cron = require("node-cron");
+const { extractInsightStandalone } = require("./standalone_extractor.js");
+
+// Configuration for max stocks in one bulk request
+const MAX_STOCKS_PER_REQUEST = 10;
+// Separate cache for persistent stock data results
+// Map of symbol -> { results, timestamp }
+const stockDataCache = new Map();
+
 
 // In-memory cache for background requests
 const requestCache = new Map();
+const MAX_REQUESTS_IN_CACHE = 2;
+// Configuration for cache cleanup time (UTC)
+const CACHE_CLEANUP_SCHEDULE = "0 6 * * *"; // Midnight UTC
+
+let CACHE_REFRESH_ONGOING = 0;
+cron.schedule(
+  CACHE_CLEANUP_SCHEDULE,
+  async () => {
+    console.log(
+      `[Cache Refresh] Starting daily cache refresh at ${new Date().toUTCString()}`,
+    );
+    try {
+      console.log(
+        `[Cache] Running scheduled cleanup at ${new Date().toUTCString()}`,
+      );
+      stockDataCache.clear();
+      requestCache.clear();
+      console.log("[Cache] Stock data cache cleared.");
+      // Refresh cache for NIFTY 50 (you can add more indices)
+      const result = await fetchAndProcessIndexStocks(
+        "NIFTY 50",
+        stockDataCache,
+        {
+          invalidateCache: true, // Force refresh even if cached
+          metadataConcurrency: 10,
+          batchSize: 10,
+          batchConcurrency: 1,
+        },
+      );
+      console.log(
+        `[Cache Refresh] Completed. Processed ${result.processedSymbols} symbols, ` +
+          `Fetched ${result.fetchedCount}, Cached ${result.cachedCount}`,
+      );
+    } catch (error) {
+      console.error(`[Cache Refresh] Failed:`, error.message);
+    }
+  },
+  null,
+  true,
+  "Asia/Kolkata",
+);
+
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -237,28 +287,7 @@ app.get("/api/extract-data", async (req, res) => {
   }
 });
 
-// Configuration for max stocks in one bulk request
-const MAX_STOCKS_PER_REQUEST = 5;
 
-const MAX_REQUESTS_IN_CACHE = 2;
-// Configuration for cache cleanup time (UTC)
-const CACHE_CLEANUP_SCHEDULE = "0 0 * * *"; // Midnight UTC
-
-// Separate cache for persistent stock data results
-// Map of symbol -> { results, timestamp }
-const stockDataCache = new Map();
-
-// Cron job for cache cleanup
-cron.schedule(CACHE_CLEANUP_SCHEDULE, () => {
-  console.log(
-    `[Cache] Running scheduled cleanup at ${new Date().toUTCString()}`,
-  );
-  stockDataCache.clear();
-  requestCache.clear();
-  console.log("[Cache] Stock data cache cleared.");
-});
-
-const { extractInsightStandalone } = require("./standalone_extractor.js");
 
 app.post("/api/extractinsight", async (req, res) => {
   const isBulk = req.query.BulkStocks === "true";
@@ -625,6 +654,63 @@ app.post("/api/extract-data", async (req, res) => {
   res.json(finalData);
 });
 
+app.get("/api/triggerRefresh", async (req, res) => {
+  const INDEX_NAME = req.query.IndexName;
+  console.log(`[triggerRefresh] Triggering refresh for index: ${INDEX_NAME}`);
+  if (stockDataCache.size > 0 || CACHE_REFRESH_ONGOING === '1') {
+    console.log(
+      `[triggerRefresh] Cache already exists with ${stockDataCache.size} entries`,
+    );
+    return res.json({
+      stockDataCache: stockDataCache.size,
+      message: "Cache already exists or ongoing",
+    });
+  }
+  (async () => {
+    console.log(
+      `[Cache Refresh] Starting daily cache refresh at ${new Date().toUTCString()}`,
+    );
+    CACHE_REFRESH_ONGOING = 1;
+    try {
+      console.log(
+        `[Cache] Running scheduled cleanup at ${new Date().toUTCString()}`,
+      );
+      stockDataCache.clear();
+      requestCache.clear();
+      console.log("[Cache] Stock data cache cleared.");
+      // Refresh cache for NIFTY 50 (you can add more indices)
+      const result = fetchAndProcessIndexStocks(INDEX_NAME, stockDataCache, {
+        invalidateCache: true, // Force refresh even if cached
+        metadataConcurrency: 10,
+        batchSize: 10,
+        batchConcurrency: 1,
+      });
+      console.log(
+        `[Cache Refresh] Completed. Processed ${result.processedSymbols} symbols, ` +
+          `Fetched ${result.fetchedCount}, Cached ${result.cachedCount}`,
+      );
+      CACHE_REFRESH_ONGOING = 0;
+    } catch (error) {
+      console.error(`[Cache Refresh] Failed:`, error.message);
+    }
+
+    return res.json({
+      stockDataCache: stockDataCache.size,
+      message: "Cache refresh started",
+    });
+  })();
+});
+
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+(async () => {
+  //const stockDataCache = new Map();
+  await fetchAndProcessIndexStocks("NIFTY 50", stockDataCache, {
+    invalidateCache: true, // Force refresh even if cached
+    metadataConcurrency: 10,
+    batchSize: 10,
+    batchConcurrency: 1,
+  });
+})();
