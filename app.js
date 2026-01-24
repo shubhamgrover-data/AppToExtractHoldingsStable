@@ -9,6 +9,7 @@ const { Worker } = require("worker_threads");
 const crypto = require("crypto");
 const cron = require("node-cron");
 const { extractInsightStandalone } = require("./standalone_extractor.js");
+const { fetchAndProcessIndexStocks } = require("./FetchStocksForIndices_v2.js");
 
 // Configuration for max stocks in one bulk request
 const MAX_STOCKS_PER_REQUEST = 10;
