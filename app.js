@@ -206,8 +206,8 @@ app.get("/api/extract-data", async (req, res) => {
     String(attribute) === "data-stock-pk,data-stockslugname" ||
     String(attribute) === "data-stockslugname,data-stock-pk"
   ) {
+    const symbolMatch = url.match(/\/equity\/([^/]+)\/stock-page\/?$/);
     if (symbolMatch) {
-      const symbolMatch = url.match(/\/equity\/([^/]+)\/stock-page\/?$/);
       symbol = symbolMatch[1].toUpperCase();
       if (stockMetadataCache.has(symbol)) {
         const cached = stockMetadataCache.get(symbol);
