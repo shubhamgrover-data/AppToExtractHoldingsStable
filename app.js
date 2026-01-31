@@ -214,7 +214,7 @@ app.get("/api/extract-data", async (req, res) => {
         console.log(
           `[GET /api/extract-data] Cache HIT for ${symbol} attribute ${attribute}`,
         );
-        return res.json(cached.metadata);
+        return res.json(cached);
       } else {
         console.log(
           `[GET /api/extract-data] Cache MISS for ${symbol} attribute ${attribute}`,
