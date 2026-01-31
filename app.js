@@ -4,222 +4,27 @@ const axios = require("axios");
 const cheerio = require("cheerio");
 const { JSDOM } = require("jsdom");
 const path = require("path");
-const { parseTableToJSON, extractInsightLogic } = require("./helper.js");
+const { parseTableToJSON } = require("./helper.js");
 const { Worker } = require("worker_threads");
 const crypto = require("crypto");
-const cron = require("node-cron");
+
 const { extractInsightStandalone } = require("./standalone_extractor.js");
 const { fetchAndProcessIndexStocks } = require("./FetchStocksForIndices_v2.js");
+const { cacheCleanupAndRebuild } = require("./cron.js");
 
 // Configuration for max stocks in one bulk request
 const MAX_STOCKS_PER_REQUEST = 10;
 // Separate cache for persistent stock data results
 // Map of symbol -> { results, timestamp }
 const stockDataCache = new Map();
-
 // In-memory cache for stock metadata (symbol -> {pk, slug})
 const stockMetadataCache = new Map();
-
 // In-memory cache for background requests
 const requestCache = new Map();
 
-// Configuration for cache cleanup time (UTC)
-const CACHE_CLEANUP_SCHEDULE = "5 20 * * *"; // Midnight UTC
-const CACHE_REBUILD_SCHEDULE_NEXT50 = "10 20 * * *";
-const CACHE_REBUILD_SCHEDULE_MID50 = "20 1 * * *";
-const CACHE_REBUILD_SCHEDULE_MID100 = "30 1 * * *";
-const CACHE_REBUILD_SCHEDULE_MID150 = "40 1 * * *";
-
-cron.schedule(
-  CACHE_CLEANUP_SCHEDULE,
-  async () => {
-    console.log(
-      `[Cache Refresh] Starting daily cache refresh at ${new Date().toUTCString()}`,
-    );
-    try {
-      console.log(
-        `[Cache] Running scheduled cleanup at ${new Date().toUTCString()}`,
-      );
-      stockDataCache.clear();
-      requestCache.clear();
-      //stockMetadataCache.clear(); not required
-      console.log("[Cache] All caches cleared.");
-      // Refresh cache for NIFTY 50 (you can add more indices)
-      const result = await fetchAndProcessIndexStocks(
-        "NIFTY 50",
-        stockDataCache,
-        {
-          stockMetadataCache,
-          invalidateCache: true, // Force refresh even if cached
-          metadataConcurrency: 10,
-          batchSize: 10,
-          batchConcurrency: 1,
-        },
-      );
-      console.log(
-        `[Cache Refresh] Completed. Processed ${result.processedSymbols} symbols, ` +
-          `Fetched ${result.fetchedCount}, Cached ${result.cachedCount}`,
-      );
-    } catch (error) {
-      console.error(`[Cache Refresh] Failed:`, error.message);
-    }
-  },
-  null,
-  true,
-  "Asia/Kolkata",
-);
-
-cron.schedule(
-  CACHE_REBUILD_SCHEDULE_NEXT50,
-  async () => {
-    console.log(
-      `[Cache Refresh] Starting daily cache refresh at ${new Date().toUTCString()}`,
-    );
-    try {
-      console.log(
-        `[Cache] Running scheduled cleanup at ${new Date().toUTCString()}`,
-      );
-      //stockMetadataCache.clear(); not required
-      console.log("[Cache] Stock cache not cleared.");
-      // Refresh cache for NIFTY 50 (you can add more indices)
-      const result = await fetchAndProcessIndexStocks(
-        "NIFTY NEXT 50",
-        stockDataCache,
-        {
-          stockMetadataCache,
-          invalidateCache: false, // Force refresh even if cached
-          metadataConcurrency: 10,
-          batchSize: 10,
-          batchConcurrency: 1,
-        },
-      );
-      console.log(
-        `[Cache Refresh] Completed. Processed ${result.processedSymbols} symbols, ` +
-          `Fetched ${result.fetchedCount}, Cached ${result.cachedCount}`,
-      );
-    } catch (error) {
-      console.error(`[Cache Refresh] Failed:`, error.message);
-    }
-  },
-  null,
-  true,
-  "Asia/Kolkata",
-);
-
-cron.schedule(
-  CACHE_REBUILD_SCHEDULE_MID50,
-  async () => {
-    console.log(
-      `[Cache Refresh] Starting daily cache refresh at ${new Date().toUTCString()}`,
-    );
-    try {
-      console.log(
-        `[Cache] Running scheduled cleanup at ${new Date().toUTCString()}`,
-      );
-      //stockMetadataCache.clear(); not required
-      console.log("[Cache] Stock cache not cleared.");
-      // Refresh cache for NIFTY 50 (you can add more indices)
-      const result = await fetchAndProcessIndexStocks(
-        "NIFTY MIDCAP 50",
-        stockDataCache,
-        {
-          stockMetadataCache,
-          invalidateCache: false, // Force refresh even if cached
-          metadataConcurrency: 10,
-          batchSize: 10,
-          batchConcurrency: 1,
-        },
-      );
-      console.log(
-        `[Cache Refresh] Completed. Processed ${result.processedSymbols} symbols, ` +
-          `Fetched ${result.fetchedCount}, Cached ${result.cachedCount}`,
-      );
-    } catch (error) {
-      console.error(`[Cache Refresh] Failed:`, error.message);
-    }
-  },
-  null,
-  true,
-  "Asia/Kolkata",
-);
-
-cron.schedule(
-  CACHE_REBUILD_SCHEDULE_MID100,
-  async () => {
-    console.log(
-      `[Cache Refresh] Starting daily cache refresh at ${new Date().toUTCString()}`,
-    );
-    try {
-      console.log(
-        `[Cache] Running scheduled cleanup at ${new Date().toUTCString()}`,
-      );
-      //stockMetadataCache.clear(); not required
-      console.log("[Cache] Stock cache not cleared.");
-      // Refresh cache for NIFTY 50 (you can add more indices)
-      const result = await fetchAndProcessIndexStocks(
-        "NIFTY MIDCAP 100",
-        stockDataCache,
-        {
-          stockMetadataCache,
-          invalidateCache: false, // Force refresh even if cached
-          metadataConcurrency: 10,
-          batchSize: 10,
-          batchConcurrency: 1,
-        },
-      );
-      console.log(
-        `[Cache Refresh] Completed. Processed ${result.processedSymbols} symbols, ` +
-          `Fetched ${result.fetchedCount}, Cached ${result.cachedCount}`,
-      );
-    } catch (error) {
-      console.error(`[Cache Refresh] Failed:`, error.message);
-    }
-  },
-  null,
-  true,
-  "Asia/Kolkata",
-);
-
-cron.schedule(
-  CACHE_REBUILD_SCHEDULE_MID150,
-  async () => {
-    console.log(
-      `[Cache Refresh] Starting daily cache refresh at ${new Date().toUTCString()}`,
-    );
-    try {
-      console.log(
-        `[Cache] Running scheduled cleanup at ${new Date().toUTCString()}`,
-      );
-      //stockMetadataCache.clear(); not required
-      console.log("[Cache] Stock cache not cleared.");
-      // Refresh cache for NIFTY 50 (you can add more indices)
-      const result = await fetchAndProcessIndexStocks(
-        "NIFTY MIDCAP 150",
-        stockDataCache,
-        {
-          stockMetadataCache,
-          invalidateCache: false, // Force refresh even if cached
-          metadataConcurrency: 10,
-          batchSize: 10,
-          batchConcurrency: 1,
-        },
-      );
-      console.log(
-        `[Cache Refresh] Completed. Processed ${result.processedSymbols} symbols, ` +
-          `Fetched ${result.fetchedCount}, Cached ${result.cachedCount}`,
-      );
-    } catch (error) {
-      console.error(`[Cache Refresh] Failed:`, error.message);
-    }
-  },
-  null,
-  true,
-  "Asia/Kolkata",
-);
-
 const app = express();
 const PORT = process.env.PORT || 5000;
-
+cacheCleanupAndRebuild();
 // Middleware
 app.use(
   cors({
@@ -915,9 +720,11 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });
 
+module.exports = { stockDataCache, stockMetadataCache, requestCache };
+
 // (async () => {
 //   //const stockDataCache = new Map();
-//   await fetchAndProcessIndexStocks("NIFTY NEXT 50", stockDataCache, {
+//   await fetchAndProcessIndexStocks("NIFTY 50", stockDataCache, {
 //     stockMetadataCache,
 //     invalidateCache: true, // Force refresh even if cached
 //     metadataConcurrency: 10,
