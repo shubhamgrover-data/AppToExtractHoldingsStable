@@ -23,7 +23,6 @@ const requestCache = new Map();
 // Configuration for cache cleanup time (UTC)
 const CACHE_CLEANUP_SCHEDULE = "0 6 * * *"; // Midnight UTC
 
-
 cron.schedule(
   CACHE_CLEANUP_SCHEDULE,
   async () => {
@@ -164,7 +163,9 @@ app.post("/api/extract", async (req, res) => {
 // GET endpoint for single URL data extraction
 app.get("/api/extract-data", async (req, res) => {
   const { url, attribute, attributeValue, tagName } = req.query;
-  console.log(`[GET /api/extract-data] Request for URL: ${url}, Attribute: ${attribute}, Value: ${attributeValue}, Tag: ${tagName}`);
+  console.log(
+    `[GET /api/extract-data] Request for URL: ${url}, Attribute: ${attribute}, Value: ${attributeValue}, Tag: ${tagName}`,
+  );
 
   if (!url) {
     return res.status(400).json({ error: "Please provide a url parameter" });
@@ -522,7 +523,9 @@ app.get("/api/extractinsight/status/:requestId", (req, res) => {
 // POST endpoint to extract data from a URL using POST method
 app.post("/api/extractdata_post", async (req, res) => {
   const { url, attribute, attributeValue, tagName, headers } = req.query;
-  console.log(`[POST /api/extractdata_post] Request for URL: ${url}, Attribute: ${attribute}, Value: ${attributeValue}, Tag: ${tagName}`);
+  console.log(
+    `[POST /api/extractdata_post] Request for URL: ${url}, Attribute: ${attribute}, Value: ${attributeValue}, Tag: ${tagName}`,
+  );
 
   if (!url) {
     return res.status(400).json({ error: "Please provide a url parameter" });
@@ -684,12 +687,12 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });
 
-(async () => {
-  //const stockDataCache = new Map();
-  await fetchAndProcessIndexStocks("NIFTY 50", stockDataCache, {
-    invalidateCache: true, // Force refresh even if cached
-    metadataConcurrency: 10,
-    batchSize: 10,
-    batchConcurrency: 1,
-  });
-})();
+// (async () => {
+//   //const stockDataCache = new Map();
+//   await fetchAndProcessIndexStocks("NIFTY 50", stockDataCache, {
+//     invalidateCache: true, // Force refresh even if cached
+//     metadataConcurrency: 10,
+//     batchSize: 10,
+//     batchConcurrency: 1,
+//   });
+// })();
