@@ -711,6 +711,8 @@ app.get("/api/triggerRefresh", async (req, res) => {
       stockDataCache: stockDataCache.size,
       stockMetadataCache: stockMetadataCache.size,
       requestCache: requestCache.size,
+      stockDataCacheData: stockDataCache.entries(),
+      stockMetadataCacheData: stockMetadataCache.entries(),
       message: "Caches not cleared",
     });
   }
@@ -730,8 +732,3 @@ app.listen(PORT, "0.0.0.0", () => {
 //     batchConcurrency: 1,
 //   });
 // })();
-
-setTimeout(() => {
-  console.log("Stock data cache size:", stockDataCache);
-  console.log("Stock metadata cache size:", stockMetadataCache);
-}, 10000);
