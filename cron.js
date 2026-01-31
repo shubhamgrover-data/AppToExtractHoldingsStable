@@ -2,8 +2,8 @@ const { cacheJob } = require("./cache.js");
 const cron = require("node-cron");
 
 // Configuration for cache cleanup time (UTC)
-const CACHE_CLEANUP_SCHEDULE = "35 2 * * *"; // Midnight UTC
-const CACHE_REBUILD_SCHEDULE_NEXT50 = "40 2 * * *";
+const CACHE_CLEANUP_SCHEDULE = "40 2 * * *"; // Midnight UTC
+const CACHE_REBUILD_SCHEDULE_NEXT50 = "45 2 * * *";
 const CACHE_REBUILD_SCHEDULE_MID50 = "0 6 * * *";
 const CACHE_REBUILD_SCHEDULE_MID100 = "10 6 * * *";
 const CACHE_REBUILD_SCHEDULE_MID150 = "20 6 * * *";
@@ -32,62 +32,101 @@ const CACHE_REBUILD = [
   },
 ];
 
-function cacheClean_50() {
+function cacheClean_50(stockDataCache, stockMetadataCache, requestCache) {
   cron.schedule(
     CACHE_REBUILD[0].schedule,
-    () => () => cacheJob(CACHE_REBUILD[0].schedule, CACHE_REBUILD[0].cache),
+    () => () =>
+      cacheJob(
+        CACHE_REBUILD[0].schedule,
+        CACHE_REBUILD[0].cache,
+        stockDataCache,
+        stockMetadataCache,
+        requestCache,
+      ),
     {
       timezone: "Asia/Kolkata",
     },
   );
 }
 
-function cacheRebuild_NEXT50() {
+function cacheRebuild_NEXT50(stockDataCache, stockMetadataCache, requestCache) {
   cron.schedule(
     CACHE_REBUILD[1].schedule,
-    () => cacheJob(CACHE_REBUILD[1].schedule, CACHE_REBUILD[1].cache),
+    () =>
+      cacheJob(
+        CACHE_REBUILD[1].schedule,
+        CACHE_REBUILD[1].cache,
+        stockDataCache,
+        stockMetadataCache,
+        requestCache,
+      ),
     {
       timezone: "Asia/Kolkata",
     },
   );
 }
 
-function cacheRebuild_MID50() {
+function cacheRebuild_MID50(stockDataCache, stockMetadataCache, requestCache) {
   cron.schedule(
     CACHE_REBUILD[2].schedule,
-    () => cacheJob(CACHE_REBUILD[2].schedule, CACHE_REBUILD[2].cache),
+    () =>
+      cacheJob(
+        CACHE_REBUILD[2].schedule,
+        CACHE_REBUILD[2].cache,
+        stockDataCache,
+        stockMetadataCache,
+        requestCache,
+      ),
     {
       timezone: "Asia/Kolkata",
     },
   );
 }
 
-function cacheRebuild_MID100() {
+function cacheRebuild_MID100(stockDataCache, stockMetadataCache, requestCache) {
   cron.schedule(
     CACHE_REBUILD[3].schedule,
-    () => cacheJob(CACHE_REBUILD[3].schedule, CACHE_REBUILD[3].cache),
+    () =>
+      cacheJob(
+        CACHE_REBUILD[3].schedule,
+        CACHE_REBUILD[3].cache,
+        stockDataCache,
+        stockMetadataCache,
+        requestCache,
+      ),
     {
       timezone: "Asia/Kolkata",
     },
   );
 }
 
-function cacheRebuild_MID150() {
+function cacheRebuild_MID150(stockDataCache, stockMetadataCache, requestCache) {
   cron.schedule(
     CACHE_REBUILD[4].schedule,
-    () => cacheJob(CACHE_REBUILD[4].schedule, CACHE_REBUILD[4].cache),
+    () =>
+      cacheJob(
+        CACHE_REBUILD[4].schedule,
+        CACHE_REBUILD[4].cache,
+        stockDataCache,
+        stockMetadataCache,
+        requestCache,
+      ),
     {
       timezone: "Asia/Kolkata",
     },
   );
 }
 
-function cacheCleanupAndRebuild() {
-  cacheClean_50();
-  cacheRebuild_NEXT50();
-  cacheRebuild_MID50();
-  cacheRebuild_MID100();
-  cacheRebuild_MID150();
+function cacheCleanupAndRebuild(
+  stockDataCache,
+  stockMetadataCache,
+  requestCache,
+) {
+  cacheClean_50(stockDataCache, stockMetadataCache, requestCache);
+  cacheRebuild_NEXT50(stockDataCache, stockMetadataCache, requestCache);
+  cacheRebuild_MID50(stockDataCache, stockMetadataCache, requestCache);
+  cacheRebuild_MID100(stockDataCache, stockMetadataCache, requestCache);
+  cacheRebuild_MID150(stockDataCache, stockMetadataCache, requestCache);
 }
 
 module.exports = { cacheCleanupAndRebuild };

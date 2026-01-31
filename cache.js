@@ -1,11 +1,12 @@
 const { fetchAndProcessIndexStocks } = require("./FetchStocksForIndices_v2.js");
-const {
-  stockDataCache,
-  requestCache,
-  stockMetadataCache,
-} = require("./app.js");
 
-const cacheJob = async (INDEX, CACHE_REFRESH) => {
+const cacheJob = async (
+  INDEX,
+  CACHE_REFRESH,
+  stockDataCache,
+  stockMetadataCache,
+  requestCache,
+) => {
   console.log(
     `[Cache Refresh] Starting daily cache refresh at ${new Date().toUTCString()}`,
   );
