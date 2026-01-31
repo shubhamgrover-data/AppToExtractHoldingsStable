@@ -203,8 +203,8 @@ app.get("/api/extract-data", async (req, res) => {
 
   // Check metadata cache for stock pk/slug if the URL follows trendlyne pattern
   if (
-    attribute === "data-stock-pk,data-stockslugname" ||
-    attribute === "data-stockslugname,data-stock-pk"
+    String(attribute) === "data-stock-pk,data-stockslugname" ||
+    String(attribute) === "data-stockslugname,data-stock-pk"
   ) {
     if (symbolMatch) {
       const symbolMatch = url.match(/\/equity\/([^/]+)\/stock-page\/?$/);
