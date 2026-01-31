@@ -24,8 +24,8 @@ const stockMetadataCache = new Map();
 const requestCache = new Map();
 
 // Configuration for cache cleanup time (UTC)
-const CACHE_CLEANUP_SCHEDULE = "5 8 * * *"; // Midnight UTC
-const CACHE_REBUILD_SCHEDULE_NEXT50 = "10 8 * * *";
+const CACHE_CLEANUP_SCHEDULE = "5 20 * * *"; // Midnight UTC
+const CACHE_REBUILD_SCHEDULE_NEXT50 = "10 20 * * *";
 const CACHE_REBUILD_SCHEDULE_MID50 = "20 1 * * *";
 const CACHE_REBUILD_SCHEDULE_MID100 = "30 1 * * *";
 const CACHE_REBUILD_SCHEDULE_MID150 = "40 1 * * *";
