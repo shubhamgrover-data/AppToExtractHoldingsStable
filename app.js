@@ -732,6 +732,6 @@ app.listen(PORT, "0.0.0.0", () => {
 // })();
 
 setTimeout(() => {
-  console.log("Stock data cache size:", stockDataCache.entries);
-  console.log("Stock metadata cache size:", stockMetadataCache.entries);
+  console.log("Stock data cache size:", stockDataCache);
+  console.log("Stock metadata cache size:", stockMetadataCache);
 }, 10000);
