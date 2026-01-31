@@ -17,14 +17,13 @@ const MAX_STOCKS_PER_REQUEST = 10;
 // Map of symbol -> { results, timestamp }
 const stockDataCache = new Map();
 
-
 // In-memory cache for background requests
 const requestCache = new Map();
-const MAX_REQUESTS_IN_CACHE = 2;
+
 // Configuration for cache cleanup time (UTC)
 const CACHE_CLEANUP_SCHEDULE = "0 6 * * *"; // Midnight UTC
 
-let CACHE_REFRESH_ONGOING = 0;
+
 cron.schedule(
   CACHE_CLEANUP_SCHEDULE,
   async () => {
@@ -61,7 +60,6 @@ cron.schedule(
   true,
   "Asia/Kolkata",
 );
-
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -288,12 +286,10 @@ app.get("/api/extract-data", async (req, res) => {
   }
 });
 
-
-
 app.post("/api/extractinsight", async (req, res) => {
-  const isBulk = req.query.BulkStocks === "true";
-  const invalidateCache = req.query.invalidateCache === "true";
-  const useStandalone = req.query.mode === "standalone";
+  const isBulk = req.query.BulkStocks;
+  const invalidateCache = req.query.invalidateCache;
+  const useStandalone = req.query.mode;
   const body = req.body;
 
   // Normalize input: single stock object becomes an array of one
@@ -340,7 +336,9 @@ app.post("/api/extractinsight", async (req, res) => {
       const { Symbol: symbol } = stock;
       // Check stockDataCache first before fetching from URL
       if (!invalidateCache && stockDataCache.has(symbol)) {
-        console.log(`[extractinsight] [Standalone] Using cached data for ${symbol}`);
+        console.log(
+          `[extractinsight] [Standalone] Using cached data for ${symbol}`,
+        );
         const cachedStockData = stockDataCache.get(symbol);
         cachedResults[symbol] = cachedStockData.results;
       } else {
@@ -522,14 +520,14 @@ app.get("/api/extractinsight/status/:requestId", (req, res) => {
 
 // POST endpoint to extract data from a URL using POST method
 app.post("/api/extractdata_post", async (req, res) => {
-  const { url, attribute, attributeValue, tagName, body, headers } = req.body;
+  const { url, attribute, attributeValue, tagName, headers } = req.query;
 
   if (!url) {
     return res.status(400).json({ error: "Please provide a url parameter" });
   }
 
   try {
-    const { data: html } = await axios.post(url, body || {}, {
+    const { data: html } = await axios.post(url, req.body || {}, {
       timeout: 10000,
       headers: {
         "User-Agent":
@@ -656,50 +654,28 @@ app.post("/api/extract-data", async (req, res) => {
 });
 
 app.get("/api/triggerRefresh", async (req, res) => {
-  const INDEX_NAME = req.query.IndexName;
-  console.log(`[triggerRefresh] Triggering refresh for index: ${INDEX_NAME}`);
-  if (stockDataCache.size > 0 || CACHE_REFRESH_ONGOING === '1') {
+  const clearCache = req.query.clearCache;
+
+  if (stockDataCache.size > 0 && clearCache === "yes") {
+    console.log(`[triggerRefresh] Triggering refresh with clear cache`);
     console.log(
-      `[triggerRefresh] Cache already exists with ${stockDataCache.size} entries`,
+      `[triggerRefresh] Cache exists with ${stockDataCache.size} entries`,
+    );
+    stockDataCache.clear();
+    return res.json({
+      stockDataCache: stockDataCache.size,
+      message: "Cache cleared",
+    });
+  } else {
+    console.log(`[triggerRefresh] Triggering refresh without clearing cache`);
+    console.log(
+      `[triggerRefresh] Cache exists with ${stockDataCache.size} entries`,
     );
     return res.json({
       stockDataCache: stockDataCache.size,
-      message: "Cache already exists or ongoing",
+      message: "Cache not cleared",
     });
   }
-  (async () => {
-    console.log(
-      `[Cache Refresh] Starting daily cache refresh at ${new Date().toUTCString()}`,
-    );
-    CACHE_REFRESH_ONGOING = 1;
-    try {
-      console.log(
-        `[Cache] Running scheduled cleanup at ${new Date().toUTCString()}`,
-      );
-      stockDataCache.clear();
-      requestCache.clear();
-      console.log("[Cache] Stock data cache cleared.");
-      // Refresh cache for NIFTY 50 (you can add more indices)
-      const result = fetchAndProcessIndexStocks(INDEX_NAME, stockDataCache, {
-        invalidateCache: true, // Force refresh even if cached
-        metadataConcurrency: 10,
-        batchSize: 10,
-        batchConcurrency: 1,
-      });
-      console.log(
-        `[Cache Refresh] Completed. Processed ${result.processedSymbols} symbols, ` +
-          `Fetched ${result.fetchedCount}, Cached ${result.cachedCount}`,
-      );
-      CACHE_REFRESH_ONGOING = 0;
-    } catch (error) {
-      console.error(`[Cache Refresh] Failed:`, error.message);
-    }
-
-    return res.json({
-      stockDataCache: stockDataCache.size,
-      message: "Cache refresh started",
-    });
-  })();
 });
 
 app.listen(PORT, "0.0.0.0", () => {
