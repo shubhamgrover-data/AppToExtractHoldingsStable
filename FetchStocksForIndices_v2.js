@@ -308,11 +308,15 @@ async function getStockMetadata(symbol, stockMetadataCache, options = {}) {
   // Check cache before fetching
   if (stockMetadataCache && stockMetadataCache.has(normalizedSymbol)) {
     const cachedData = stockMetadataCache.get(normalizedSymbol);
-    console.log(`[getStockMetadata] Cache HIT for ${normalizedSymbol}: pk=${cachedData.pk}, slug=${cachedData.slug}`);
+    console.log(
+      `[getStockMetadata] Cache HIT for ${normalizedSymbol}: pk=${cachedData.pk}, slug=${cachedData.slug}`,
+    );
     return { symbol: normalizedSymbol, ...cachedData };
   }
 
-  console.log(`[getStockMetadata] Cache MISS for ${normalizedSymbol}. Fetching...`);
+  console.log(
+    `[getStockMetadata] Cache MISS for ${normalizedSymbol}. Fetching...`,
+  );
 
   try {
     const targetUrl = `https://trendlyne.com/equity/${normalizedSymbol}/stock-page/`;
@@ -344,7 +348,9 @@ async function getStockMetadata(symbol, stockMetadataCache, options = {}) {
     const metadata = { pk: String(pk), slug: String(slug) };
     if (stockMetadataCache) {
       stockMetadataCache.set(normalizedSymbol, metadata);
-      console.log(`[getStockMetadata] Updated cache for ${normalizedSymbol}`);
+      console.log(
+        `[getStockMetadata] Updated metdata cache for ${normalizedSymbol}`,
+      );
     }
 
     return { symbol: normalizedSymbol, ...metadata };
@@ -667,8 +673,6 @@ async function fetchAndProcessIndexStocks(
     throw error;
   }
 }
-
-
 
 module.exports = {
   JSONFORMAT,

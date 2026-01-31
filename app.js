@@ -191,6 +191,7 @@ app.post("/api/extract", async (req, res) => {
 // GET endpoint for single URL data extraction
 app.get("/api/extract-data", async (req, res) => {
   const { url, attribute, attributeValue, tagName } = req.query;
+  let symbol = "";
   console.log(
     `[GET /api/extract-data] Request for URL: ${url}, Attribute: ${attribute}, Value: ${attributeValue}, Tag: ${tagName}`,
   );
@@ -203,7 +204,7 @@ app.get("/api/extract-data", async (req, res) => {
   if (attribute === "data-stock-pk" || attribute === "data-stockslugname") {
     const symbolMatch = url.match(/\/equity\/([^/]+)\/stock-page\/?$/);
     if (symbolMatch) {
-      const symbol = symbolMatch[1].toUpperCase();
+      symbol = symbolMatch[1].toUpperCase();
       if (stockMetadataCache.has(symbol)) {
         const cached = stockMetadataCache.get(symbol);
         console.log(
@@ -291,6 +292,27 @@ app.get("/api/extract-data", async (req, res) => {
             multiResults[attr] = { error: "Invalid attribute selector" };
           }
         }
+        if (
+          attribute === "data-stock-pk,data-stockslugname" ||
+          attribute === "data-stockslugname,data-stock-pk"
+        ) {
+          if (
+            multiResults["data-stock-pk"] &&
+            multiResults["data-stockslugname"]
+          ) {
+            // Update cache
+            const metadata = {
+              pk: String(multiResults["data-stock-pk"]),
+              slug: String(multiResults["data-stockslugname"]),
+            };
+            if (stockMetadataCache) {
+              stockMetadataCache.set(symbol, metadata);
+              console.log(
+                `[GET /api/extract-data] Updated metadata cache for ${symbol}`,
+              );
+            }
+          }
+        }
         return res.json(multiResults);
       } else {
         // Original single attribute logic
@@ -304,6 +326,7 @@ app.get("/api/extract-data", async (req, res) => {
             try {
               const jsonData = JSON.parse(attrValue);
               // Maintain compatibility with previous data structure if possible
+
               if (
                 Array.isArray(jsonData) &&
                 jsonData[0] &&
