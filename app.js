@@ -730,3 +730,8 @@ app.listen(PORT, "0.0.0.0", () => {
 //     batchConcurrency: 1,
 //   });
 // })();
+
+setTimeout(() => {
+  console.log("Stock data cache size:", stockDataCache.entries);
+  console.log("Stock metadata cache size:", stockMetadataCache.entries);
+}, 10000);
