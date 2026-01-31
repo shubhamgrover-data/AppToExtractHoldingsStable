@@ -38,7 +38,7 @@ cron.schedule(
       );
       stockDataCache.clear();
       requestCache.clear();
-      stockMetadataCache.clear();
+      //stockMetadataCache.clear(); not required
       console.log("[Cache] All caches cleared.");
       // Refresh cache for NIFTY 50 (you can add more indices)
       const result = await fetchAndProcessIndexStocks(
@@ -110,14 +110,16 @@ app.post("/api/extract", async (req, res) => {
           const symbol = symbolMatch[1].toUpperCase();
           if (stockMetadataCache.has(symbol)) {
             const cached = stockMetadataCache.get(symbol);
-            console.log(`[POST /api/extract] Cache HIT for ${symbol} attribute ${attribute}`);
+            console.log(
+              `[POST /api/extract] Cache HIT for ${symbol} attribute ${attribute}`,
+            );
             results.push({
               url,
               success: true,
               data: attribute === "data-stock-pk" ? cached.pk : cached.slug,
               attribute: attribute,
               rawValue: attribute === "data-stock-pk" ? cached.pk : cached.slug,
-              fromCache: true
+              fromCache: true,
             });
             continue;
           }
@@ -204,8 +206,12 @@ app.get("/api/extract-data", async (req, res) => {
       const symbol = symbolMatch[1].toUpperCase();
       if (stockMetadataCache.has(symbol)) {
         const cached = stockMetadataCache.get(symbol);
-        console.log(`[GET /api/extract-data] Cache HIT for ${symbol} attribute ${attribute}`);
-        return res.json(attribute === "data-stock-pk" ? cached.pk : cached.slug);
+        console.log(
+          `[GET /api/extract-data] Cache HIT for ${symbol} attribute ${attribute}`,
+        );
+        return res.json(
+          attribute === "data-stock-pk" ? cached.pk : cached.slug,
+        );
       }
     }
   }
@@ -703,18 +709,19 @@ app.get("/api/triggerRefresh", async (req, res) => {
   if (clearCache === "yes") {
     console.log(`[triggerRefresh] Triggering refresh with clear cache`);
     stockDataCache.clear();
-    stockMetadataCache.clear();
-    requestCache.clear();
+    //stockMetadataCache.clear(); not required
+    //requestCache.clear(); not required
     return res.json({
       stockDataCache: stockDataCache.size,
-      stockMetadataCache: stockMetadataCache.size,
-      message: "All caches cleared",
+      //stockMetadataCache: stockMetadataCache.size, not required
+      message: " caches cleared",
     });
   } else {
     console.log(`[triggerRefresh] Triggering refresh without clearing cache`);
     return res.json({
       stockDataCache: stockDataCache.size,
       stockMetadataCache: stockMetadataCache.size,
+      requestCache: requestCache.size,
       message: "Caches not cleared",
     });
   }
