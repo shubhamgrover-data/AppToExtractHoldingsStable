@@ -24,7 +24,11 @@ const stockMetadataCache = new Map();
 const requestCache = new Map();
 
 // Configuration for cache cleanup time (UTC)
-const CACHE_CLEANUP_SCHEDULE = "0 6 * * *"; // Midnight UTC
+const CACHE_CLEANUP_SCHEDULE = "5 8 * * *"; // Midnight UTC
+const CACHE_REBUILD_SCHEDULE_NEXT50 = "10 8 * * *";
+const CACHE_REBUILD_SCHEDULE_MID50 = "20 1 * * *";
+const CACHE_REBUILD_SCHEDULE_MID100 = "30 1 * * *";
+const CACHE_REBUILD_SCHEDULE_MID150 = "40 1 * * *";
 
 cron.schedule(
   CACHE_CLEANUP_SCHEDULE,
@@ -47,6 +51,154 @@ cron.schedule(
         {
           stockMetadataCache,
           invalidateCache: true, // Force refresh even if cached
+          metadataConcurrency: 10,
+          batchSize: 10,
+          batchConcurrency: 1,
+        },
+      );
+      console.log(
+        `[Cache Refresh] Completed. Processed ${result.processedSymbols} symbols, ` +
+          `Fetched ${result.fetchedCount}, Cached ${result.cachedCount}`,
+      );
+    } catch (error) {
+      console.error(`[Cache Refresh] Failed:`, error.message);
+    }
+  },
+  null,
+  true,
+  "Asia/Kolkata",
+);
+
+cron.schedule(
+  CACHE_REBUILD_SCHEDULE_NEXT50,
+  async () => {
+    console.log(
+      `[Cache Refresh] Starting daily cache refresh at ${new Date().toUTCString()}`,
+    );
+    try {
+      console.log(
+        `[Cache] Running scheduled cleanup at ${new Date().toUTCString()}`,
+      );
+      //stockMetadataCache.clear(); not required
+      console.log("[Cache] Stock cache not cleared.");
+      // Refresh cache for NIFTY 50 (you can add more indices)
+      const result = await fetchAndProcessIndexStocks(
+        "NIFTY NEXT 50",
+        stockDataCache,
+        {
+          stockMetadataCache,
+          invalidateCache: false, // Force refresh even if cached
+          metadataConcurrency: 10,
+          batchSize: 10,
+          batchConcurrency: 1,
+        },
+      );
+      console.log(
+        `[Cache Refresh] Completed. Processed ${result.processedSymbols} symbols, ` +
+          `Fetched ${result.fetchedCount}, Cached ${result.cachedCount}`,
+      );
+    } catch (error) {
+      console.error(`[Cache Refresh] Failed:`, error.message);
+    }
+  },
+  null,
+  true,
+  "Asia/Kolkata",
+);
+
+cron.schedule(
+  CACHE_REBUILD_SCHEDULE_MID50,
+  async () => {
+    console.log(
+      `[Cache Refresh] Starting daily cache refresh at ${new Date().toUTCString()}`,
+    );
+    try {
+      console.log(
+        `[Cache] Running scheduled cleanup at ${new Date().toUTCString()}`,
+      );
+      //stockMetadataCache.clear(); not required
+      console.log("[Cache] Stock cache not cleared.");
+      // Refresh cache for NIFTY 50 (you can add more indices)
+      const result = await fetchAndProcessIndexStocks(
+        "NIFTY MIDCAP 50",
+        stockDataCache,
+        {
+          stockMetadataCache,
+          invalidateCache: false, // Force refresh even if cached
+          metadataConcurrency: 10,
+          batchSize: 10,
+          batchConcurrency: 1,
+        },
+      );
+      console.log(
+        `[Cache Refresh] Completed. Processed ${result.processedSymbols} symbols, ` +
+          `Fetched ${result.fetchedCount}, Cached ${result.cachedCount}`,
+      );
+    } catch (error) {
+      console.error(`[Cache Refresh] Failed:`, error.message);
+    }
+  },
+  null,
+  true,
+  "Asia/Kolkata",
+);
+
+cron.schedule(
+  CACHE_REBUILD_SCHEDULE_MID100,
+  async () => {
+    console.log(
+      `[Cache Refresh] Starting daily cache refresh at ${new Date().toUTCString()}`,
+    );
+    try {
+      console.log(
+        `[Cache] Running scheduled cleanup at ${new Date().toUTCString()}`,
+      );
+      //stockMetadataCache.clear(); not required
+      console.log("[Cache] Stock cache not cleared.");
+      // Refresh cache for NIFTY 50 (you can add more indices)
+      const result = await fetchAndProcessIndexStocks(
+        "NIFTY MIDCAP 100",
+        stockDataCache,
+        {
+          stockMetadataCache,
+          invalidateCache: false, // Force refresh even if cached
+          metadataConcurrency: 10,
+          batchSize: 10,
+          batchConcurrency: 1,
+        },
+      );
+      console.log(
+        `[Cache Refresh] Completed. Processed ${result.processedSymbols} symbols, ` +
+          `Fetched ${result.fetchedCount}, Cached ${result.cachedCount}`,
+      );
+    } catch (error) {
+      console.error(`[Cache Refresh] Failed:`, error.message);
+    }
+  },
+  null,
+  true,
+  "Asia/Kolkata",
+);
+
+cron.schedule(
+  CACHE_REBUILD_SCHEDULE_MID150,
+  async () => {
+    console.log(
+      `[Cache Refresh] Starting daily cache refresh at ${new Date().toUTCString()}`,
+    );
+    try {
+      console.log(
+        `[Cache] Running scheduled cleanup at ${new Date().toUTCString()}`,
+      );
+      //stockMetadataCache.clear(); not required
+      console.log("[Cache] Stock cache not cleared.");
+      // Refresh cache for NIFTY 50 (you can add more indices)
+      const result = await fetchAndProcessIndexStocks(
+        "NIFTY MIDCAP 150",
+        stockDataCache,
+        {
+          stockMetadataCache,
+          invalidateCache: false, // Force refresh even if cached
           metadataConcurrency: 10,
           batchSize: 10,
           batchConcurrency: 1,
@@ -765,7 +917,7 @@ app.listen(PORT, "0.0.0.0", () => {
 
 // (async () => {
 //   //const stockDataCache = new Map();
-//   await fetchAndProcessIndexStocks("NIFTY 50", stockDataCache, {
+//   await fetchAndProcessIndexStocks("NIFTY NEXT 50", stockDataCache, {
 //     stockMetadataCache,
 //     invalidateCache: true, // Force refresh even if cached
 //     metadataConcurrency: 10,
