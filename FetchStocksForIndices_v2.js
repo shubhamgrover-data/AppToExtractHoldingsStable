@@ -1,7 +1,10 @@
 const axios = require("axios");
 const cheerio = require("cheerio");
 const { extractInsightStandalone } = require("./standalone_extractor.js");
-//const { stockDataCache } = require("./app.js");
+
+// In-memory cache for stock metadata (symbol -> {pk, slug})
+// This cache persists as long as the server is running.
+const stockMetadataCache = new Map();
 // JSON formats
 const JSONFORMAT = [
   {
@@ -305,6 +308,15 @@ async function getStockMetadata(symbol, options = {}) {
     return { symbol, error: "Empty symbol" };
   }
 
+  // Check cache before fetching
+  if (stockMetadataCache.has(normalizedSymbol)) {
+    const cachedData = stockMetadataCache.get(normalizedSymbol);
+    console.log(`[getStockMetadata] Cache HIT for ${normalizedSymbol}: pk=${cachedData.pk}, slug=${cachedData.slug}`);
+    return { symbol: normalizedSymbol, ...cachedData };
+  }
+
+  console.log(`[getStockMetadata] Cache MISS for ${normalizedSymbol}. Fetching...`);
+
   try {
     const targetUrl = `https://trendlyne.com/equity/${normalizedSymbol}/stock-page/`;
     console.log(`[getStockMetadata] Fetching ${targetUrl}`);
@@ -330,7 +342,13 @@ async function getStockMetadata(symbol, options = {}) {
     console.log(
       `[getStockMetadata] Resolved ${normalizedSymbol}: pk=${pk}, slug=${slug}`,
     );
-    return { symbol: normalizedSymbol, pk: String(pk), slug: String(slug) };
+
+    // Update cache
+    const metadata = { pk: String(pk), slug: String(slug) };
+    stockMetadataCache.set(normalizedSymbol, metadata);
+    console.log(`[getStockMetadata] Updated cache for ${normalizedSymbol}`);
+
+    return { symbol: normalizedSymbol, ...metadata };
   } catch (error) {
     console.error(
       `[getStockMetadata] Failed for ${normalizedSymbol}: ${error.message}`,
