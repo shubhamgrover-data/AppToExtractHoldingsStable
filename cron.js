@@ -37,7 +37,7 @@ function cacheClean_50(stockDataCache, stockMetadataCache, requestCache) {
     CACHE_REBUILD[0].schedule,
     () => () =>
       cacheJob(
-        CACHE_REBUILD[0].schedule,
+        CACHE_REBUILD[0].index,
         CACHE_REBUILD[0].cache,
         stockDataCache,
         stockMetadataCache,
@@ -54,7 +54,7 @@ function cacheRebuild_NEXT50(stockDataCache, stockMetadataCache, requestCache) {
     CACHE_REBUILD[1].schedule,
     () =>
       cacheJob(
-        CACHE_REBUILD[1].schedule,
+        CACHE_REBUILD[1].index,
         CACHE_REBUILD[1].cache,
         stockDataCache,
         stockMetadataCache,
@@ -71,7 +71,7 @@ function cacheRebuild_MID50(stockDataCache, stockMetadataCache, requestCache) {
     CACHE_REBUILD[2].schedule,
     () =>
       cacheJob(
-        CACHE_REBUILD[2].schedule,
+        CACHE_REBUILD[2].index,
         CACHE_REBUILD[2].cache,
         stockDataCache,
         stockMetadataCache,
@@ -88,7 +88,7 @@ function cacheRebuild_MID100(stockDataCache, stockMetadataCache, requestCache) {
     CACHE_REBUILD[3].schedule,
     () =>
       cacheJob(
-        CACHE_REBUILD[3].schedule,
+        CACHE_REBUILD[3].index,
         CACHE_REBUILD[3].cache,
         stockDataCache,
         stockMetadataCache,
@@ -105,7 +105,7 @@ function cacheRebuild_MID150(stockDataCache, stockMetadataCache, requestCache) {
     CACHE_REBUILD[4].schedule,
     () =>
       cacheJob(
-        CACHE_REBUILD[4].schedule,
+        CACHE_REBUILD[4].index,
         CACHE_REBUILD[4].cache,
         stockDataCache,
         stockMetadataCache,
