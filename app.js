@@ -192,13 +192,7 @@ app.post("/api/extract", async (req, res) => {
 app.get("/api/extract-data", async (req, res) => {
   const { url, attribute, attributeValue, tagName } = req.query;
   let symbol = "";
-  const symbolMatch = url.match(/\/equity\/([^/]+)\/stock-page\/?$/);
-  if (symbolMatch) {
-    symbol = symbolMatch[1].toUpperCase();
-  }
-  else {
-    console.log("`[GET /api/extract-data] Symbol not found in URL");
-  }
+
   console.log(
     `[GET /api/extract-data] Request for URL: ${url}, Attribute: ${attribute}, Value: ${attributeValue}, Tag: ${tagName}`,
   );
@@ -209,21 +203,27 @@ app.get("/api/extract-data", async (req, res) => {
 
   // Check metadata cache for stock pk/slug if the URL follows trendlyne pattern
   if (
-    attribute.contains("data-stock-pk") ||
-    attribute.contains("data-stockslugname")
+    attribute === "data-stock-pk,data-stockslugname" ||
+    attribute === "data-stockslugname,data-stock-pk"
   ) {
-    if (stockMetadataCache.has(symbol)) {
-      const cached = stockMetadataCache.get(symbol);
-      console.log(
-        `[GET /api/extract-data] Cache HIT for ${symbol} attribute ${attribute}`,
-      );
-      return res.json(cached.metadata);
+    if (symbolMatch) {
+      const symbolMatch = url.match(/\/equity\/([^/]+)\/stock-page\/?$/);
+      symbol = symbolMatch[1].toUpperCase();
+      if (stockMetadataCache.has(symbol)) {
+        const cached = stockMetadataCache.get(symbol);
+        console.log(
+          `[GET /api/extract-data] Cache HIT for ${symbol} attribute ${attribute}`,
+        );
+        return res.json(cached.metadata);
+      } else {
+        console.log(
+          `[GET /api/extract-data] Cache MISS for ${symbol} attribute ${attribute}`,
+        );
+      }
     } else {
-      console.log(
-        `[GET /api/extract-data] Cache MISS for ${symbol} attribute ${attribute}`,
-      );
+      console.log("`[GET /api/extract-data] Symbol not found in URL");
     }
-  } 
+  }
 
   try {
     const { data: html } = await axios.get(url, {
