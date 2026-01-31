@@ -314,6 +314,7 @@ app.get("/api/extract-data", async (req, res) => {
               );
             }
           }
+          return res.json(stockMetadataCache.get(symbol));
         }
         return res.json(multiResults);
       } else {
