@@ -201,7 +201,7 @@ app.get("/api/extract-data", async (req, res) => {
   }
 
   // Check metadata cache for stock pk/slug if the URL follows trendlyne pattern
-  if (attribute === "data-stock-pk" || attribute === "data-stockslugname") {
+  if (attribute.contains("data-stock-pk") || attribute.contains("data-stockslugname")) {
     const symbolMatch = url.match(/\/equity\/([^/]+)\/stock-page\/?$/);
     if (symbolMatch) {
       symbol = symbolMatch[1].toUpperCase();
@@ -211,7 +211,7 @@ app.get("/api/extract-data", async (req, res) => {
           `[GET /api/extract-data] Cache HIT for ${symbol} attribute ${attribute}`,
         );
         return res.json(
-          attribute === "data-stock-pk" ? cached.pk : cached.slug,
+          cached.metadata,
         );
       } else {
         console.log(
