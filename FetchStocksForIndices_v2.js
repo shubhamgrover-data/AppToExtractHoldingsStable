@@ -2,9 +2,6 @@ const axios = require("axios");
 const cheerio = require("cheerio");
 const { extractInsightStandalone } = require("./standalone_extractor.js");
 
-// In-memory cache for stock metadata (symbol -> {pk, slug})
-// This cache persists as long as the server is running.
-const stockMetadataCache = new Map();
 // JSON formats
 const JSONFORMAT = [
   {
@@ -297,7 +294,7 @@ async function asyncPool(limit, items, iterator) {
   return results;
 }
 
-async function getStockMetadata(symbol, options = {}) {
+async function getStockMetadata(symbol, stockMetadataCache, options = {}) {
   const settings = { ...DEFAULT_OPTIONS, ...options };
   const normalizedSymbol = settings.normalizeSymbols
     ? normalizeSymbol(symbol)
@@ -309,7 +306,7 @@ async function getStockMetadata(symbol, options = {}) {
   }
 
   // Check cache before fetching
-  if (stockMetadataCache.has(normalizedSymbol)) {
+  if (stockMetadataCache && stockMetadataCache.has(normalizedSymbol)) {
     const cachedData = stockMetadataCache.get(normalizedSymbol);
     console.log(`[getStockMetadata] Cache HIT for ${normalizedSymbol}: pk=${cachedData.pk}, slug=${cachedData.slug}`);
     return { symbol: normalizedSymbol, ...cachedData };
@@ -345,8 +342,10 @@ async function getStockMetadata(symbol, options = {}) {
 
     // Update cache
     const metadata = { pk: String(pk), slug: String(slug) };
-    stockMetadataCache.set(normalizedSymbol, metadata);
-    console.log(`[getStockMetadata] Updated cache for ${normalizedSymbol}`);
+    if (stockMetadataCache) {
+      stockMetadataCache.set(normalizedSymbol, metadata);
+      console.log(`[getStockMetadata] Updated cache for ${normalizedSymbol}`);
+    }
 
     return { symbol: normalizedSymbol, ...metadata };
   } catch (error) {
@@ -450,7 +449,7 @@ async function initiateBulkInsightExtraction(
       metadataResults = await asyncPool(
         settings.metadataConcurrency,
         symbolsToFetch,
-        (sym) => getStockMetadata(sym, settings),
+        (sym) => getStockMetadata(sym, options.stockMetadataCache, settings),
       );
     }
   }

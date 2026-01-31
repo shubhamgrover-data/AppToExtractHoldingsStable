@@ -17,6 +17,9 @@ const MAX_STOCKS_PER_REQUEST = 10;
 // Map of symbol -> { results, timestamp }
 const stockDataCache = new Map();
 
+// In-memory cache for stock metadata (symbol -> {pk, slug})
+const stockMetadataCache = new Map();
+
 // In-memory cache for background requests
 const requestCache = new Map();
 
@@ -35,12 +38,14 @@ cron.schedule(
       );
       stockDataCache.clear();
       requestCache.clear();
-      console.log("[Cache] Stock data cache cleared.");
+      stockMetadataCache.clear();
+      console.log("[Cache] All caches cleared.");
       // Refresh cache for NIFTY 50 (you can add more indices)
       const result = await fetchAndProcessIndexStocks(
         "NIFTY 50",
         stockDataCache,
         {
+          stockMetadataCache,
           invalidateCache: true, // Force refresh even if cached
           metadataConcurrency: 10,
           batchSize: 10,
@@ -98,6 +103,27 @@ app.post("/api/extract", async (req, res) => {
 
   for (const url of urls) {
     try {
+      // Check metadata cache for specific attributes
+      if (attribute === "data-stock-pk" || attribute === "data-stockslugname") {
+        const symbolMatch = url.match(/\/equity\/([^/]+)\/stock-page\//);
+        if (symbolMatch) {
+          const symbol = symbolMatch[1].toUpperCase();
+          if (stockMetadataCache.has(symbol)) {
+            const cached = stockMetadataCache.get(symbol);
+            console.log(`[POST /api/extract] Cache HIT for ${symbol} attribute ${attribute}`);
+            results.push({
+              url,
+              success: true,
+              data: attribute === "data-stock-pk" ? cached.pk : cached.slug,
+              attribute: attribute,
+              rawValue: attribute === "data-stock-pk" ? cached.pk : cached.slug,
+              fromCache: true
+            });
+            continue;
+          }
+        }
+      }
+
       const { data: html } = await axios.get(url, {
         timeout: 10000,
         headers: {
@@ -169,6 +195,19 @@ app.get("/api/extract-data", async (req, res) => {
 
   if (!url) {
     return res.status(400).json({ error: "Please provide a url parameter" });
+  }
+
+  // Check metadata cache for stock pk/slug if the URL follows trendlyne pattern
+  if (attribute === "data-stock-pk" || attribute === "data-stockslugname") {
+    const symbolMatch = url.match(/\/equity\/([^/]+)\/stock-page\//);
+    if (symbolMatch) {
+      const symbol = symbolMatch[1].toUpperCase();
+      if (stockMetadataCache.has(symbol)) {
+        const cached = stockMetadataCache.get(symbol);
+        console.log(`[GET /api/extract-data] Cache HIT for ${symbol} attribute ${attribute}`);
+        return res.json(attribute === "data-stock-pk" ? cached.pk : cached.slug);
+      }
+    }
   }
 
   try {
@@ -661,24 +700,22 @@ app.post("/api/extract-data", async (req, res) => {
 app.get("/api/triggerRefresh", async (req, res) => {
   const clearCache = req.query.clearCache;
 
-  if (stockDataCache.size > 0 && clearCache === "yes") {
+  if (clearCache === "yes") {
     console.log(`[triggerRefresh] Triggering refresh with clear cache`);
-    console.log(
-      `[triggerRefresh] Cache exists with ${stockDataCache.size} entries`,
-    );
     stockDataCache.clear();
+    stockMetadataCache.clear();
+    requestCache.clear();
     return res.json({
       stockDataCache: stockDataCache.size,
-      message: "Cache cleared",
+      stockMetadataCache: stockMetadataCache.size,
+      message: "All caches cleared",
     });
   } else {
     console.log(`[triggerRefresh] Triggering refresh without clearing cache`);
-    console.log(
-      `[triggerRefresh] Cache exists with ${stockDataCache.size} entries`,
-    );
     return res.json({
       stockDataCache: stockDataCache.size,
-      message: "Cache not cleared",
+      stockMetadataCache: stockMetadataCache.size,
+      message: "Caches not cleared",
     });
   }
 });
@@ -690,6 +727,7 @@ app.listen(PORT, "0.0.0.0", () => {
 // (async () => {
 //   //const stockDataCache = new Map();
 //   await fetchAndProcessIndexStocks("NIFTY 50", stockDataCache, {
+//     stockMetadataCache,
 //     invalidateCache: true, // Force refresh even if cached
 //     metadataConcurrency: 10,
 //     batchSize: 10,
