@@ -1,5 +1,4 @@
 const Redis = require("ioredis");
-const { REDISSWITCH } = require("./cacheWrapper.js");
 
 const redisClient = new Redis({
   host: "127.0.0.1",
