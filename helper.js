@@ -28,7 +28,7 @@ function parseTableToJSON(htmlString) {
         (row) => row.querySelectorAll("td").length > 0,
     );
 
-    console.log(`[parseTableToJSON] Headers rows: ${headerRows.length}, Body rows: ${bodyRows.length}`);
+   // console.log(`[parseTableToJSON] Headers rows: ${headerRows.length}, Body rows: ${bodyRows.length}`);
 
     // --- STEP 1: RESOLVE HEADERS (Handling Rowspan/Colspan) ---
     const headerMatrix = [];
@@ -70,7 +70,7 @@ function parseTableToJSON(htmlString) {
         return path.join("_");
     }) || [];
 
-    console.log("[parseTableToJSON] Final headers:", finalHeaders);
+    //console.log("[parseTableToJSON] Final headers:", finalHeaders);
 
     // --- STEP 2: PARSE DATA ROWS ---
     const result = bodyRows.map((row, rowIndex) => {
