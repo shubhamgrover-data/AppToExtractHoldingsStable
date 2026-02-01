@@ -710,22 +710,25 @@ app.get("/api/triggerRefresh", async (req, res) => {
 
   if (clearCache === "yes") {
     console.log(`[triggerRefresh] Triggering refresh with clear cache`);
-    await stockDataCache.clear(); //stockMetadataCache.clear(); not required
-    //requestCache.clear(); not required
-    return res.json({
-      stockDataCache: stockDataCache.size,
-      //stockMetadataCache: stockMetadataCache.size, not required
-      message: " caches cleared",
-    });
+    await stockDataCache.clear();
+    await requestCache.clear();
+    //stockMetadataCache.clear(); not required
   } else {
     console.log(`[triggerRefresh] Triggering refresh without clearing cache`);
-    return res.json({
-      stockDataCache: stockDataCache.size,
-      stockMetadataCache: stockMetadataCache.size,
-      requestCache: requestCache.size,
-      message: "Caches not cleared",
-    });
   }
+
+  const stockDataSize = await stockDataCache.getSize();
+  const metadataSize = await stockMetadataCache.getSize();
+  const requestCacheSize = await requestCache.getSize();
+
+  return res.json({
+    message: clearCache === "yes" ? "Caches cleared" : "Caches not cleared",
+    cacheSizes: {
+      stockDataCache: stockDataSize,
+      stockMetadataCache: metadataSize,
+      requestCache: requestCacheSize,
+    },
+  });
 });
 
 app.listen(PORT, "0.0.0.0", () => {
