@@ -12,7 +12,7 @@ const { extractInsightStandalone } = require("./standalone_extractor.js");
 const { fetchAndProcessIndexStocks } = require("./FetchStocksForIndices_v2.js");
 const { cacheCleanupAndRebuild } = require("./cron.js");
 
-const { CacheWrapper } = require("./cacheWrapper.js");
+const { CacheWrapper, REDISSWITCH } = require("./cacheWrapper.js");
 
 // Configuration for max stocks in one bulk request
 const MAX_STOCKS_PER_REQUEST = 20;
@@ -26,12 +26,32 @@ const requestCache = new CacheWrapper("requestCache");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const cronResult = cacheCleanupAndRebuild(
-  stockDataCache,
-  stockMetadataCache,
-  requestCache,
-);
-console.log("Cron jobs status:", cronResult);
+if (!REDISSWITCH) {
+  const cronResults = cacheCleanupAndRebuild(
+    stockDataCache,
+    stockMetadataCache,
+    requestCache,
+  );
+  console.log(
+    "Cron worker status at",
+    new Date().toString(),
+    "\n",
+    "NIFTY 50:",
+    cronResults[0].getStatus(),
+    "\n",
+    "NIFTY NEXT 50:",
+    cronResults[1].getStatus(),
+    "\n",
+    "NIFTY MIDCAP 50:",
+    cronResults[2].getStatus(),
+    "\n",
+    "NIFTY MIDCAP 100:",
+    cronResults[3].getStatus(),
+    "\n",
+    "NIFTY MIDCAP 150:",
+    cronResults[4].getStatus(),
+  );
+}
 // Middleware
 app.use(
   cors({
@@ -380,7 +400,8 @@ app.post("/api/extractinsight", async (req, res) => {
     for (const stock of stocks) {
       const { Symbol: symbol } = stock;
       // Check stockDataCache first before fetching from URL
-      const cachedStockData = (invalidateCache != "true") ? await stockDataCache.get(symbol) : null;
+      const cachedStockData =
+        invalidateCache != "true" ? await stockDataCache.get(symbol) : null;
       if (cachedStockData) {
         console.log(
           `[extractinsight] [Standalone] Using cached data for ${symbol}`,
@@ -489,7 +510,9 @@ app.post("/api/extractinsight", async (req, res) => {
     }
 
     // Check if symbol data exists in cache and should be used
-    const cachedStockData = (!invalidateCache) ? await stockDataCache.get(symbol) : null;
+    const cachedStockData = !invalidateCache
+      ? await stockDataCache.get(symbol)
+      : null;
     if (cachedStockData) {
       console.log(`[extractinsight] Using cached data for ${symbol}`);
       const reqCachedData = await requestCache.get(requestId);
@@ -712,8 +735,7 @@ app.get("/api/triggerRefresh", async (req, res) => {
 
   if (clearCache === "yes") {
     console.log(`[triggerRefresh] Triggering refresh with clear cache`);
-    await stockDataCache.clear();
-    //stockMetadataCache.clear(); not required
+    await stockDataCache.clear(); //stockMetadataCache.clear(); not required
     //requestCache.clear(); not required
     return res.json({
       stockDataCache: stockDataCache.size,

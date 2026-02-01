@@ -1,12 +1,14 @@
 const { redisClient } = require("./redis.js");
 
-const REDISSWITCH = process.env.REDISSWITCH === "true";
+const REDISSWITCH = false;
 
 class CacheWrapper {
   constructor(name, internalMap = new Map()) {
     this.name = name;
     this.map = internalMap;
-    console.log(`[CacheWrapper] Initialized ${name} with REDISSWITCH=${REDISSWITCH}`);
+    console.log(
+      `[CacheWrapper] Initialized ${name} with REDISSWITCH=${REDISSWITCH}`,
+    );
   }
 
   async get(key) {
@@ -32,7 +34,12 @@ class CacheWrapper {
     if (REDISSWITCH) {
       try {
         console.log(`[CacheWrapper] ${this.name} Redis SET for ${key}`);
-        await redisClient.set(`${this.name}:${key}`, JSON.stringify(value), "EX", ttl);
+        await redisClient.set(
+          `${this.name}:${key}`,
+          JSON.stringify(value),
+          "EX",
+          ttl,
+        );
       } catch (err) {
         console.error(`[CacheWrapper] ${this.name} Redis SET error:`, err);
       }
@@ -86,12 +93,12 @@ class CacheWrapper {
 
   // Helper for size (approximate for Redis)
   async getSize() {
-     if (REDISSWITCH) {
-        const keys = await redisClient.keys(`${this.name}:*`);
-        return keys.length;
-     }
-     return this.map.size;
+    if (REDISSWITCH) {
+      const keys = await redisClient.keys(`${this.name}:*`);
+      return keys.length;
+    }
+    return this.map.size;
   }
 }
 
-module.exports = { CacheWrapper };
+module.exports = { CacheWrapper, REDISSWITCH };
