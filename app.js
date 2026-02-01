@@ -711,7 +711,7 @@ app.get("/api/triggerRefresh", async (req, res) => {
   if (clearCache === "yes") {
     console.log(`[triggerRefresh] Triggering refresh with clear cache`);
     await stockDataCache.clear();
-    await requestCache.clear();
+    //await requestCache.clear(); not required
     //stockMetadataCache.clear(); not required
   } else {
     console.log(`[triggerRefresh] Triggering refresh without clearing cache`);
