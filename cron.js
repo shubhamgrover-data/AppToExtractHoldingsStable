@@ -2,9 +2,9 @@ const { cacheJob } = require("./cache.js");
 const cron = require("node-cron");
 
 // Configuration for cache cleanup time (UTC)
-const CACHE_CLEANUP_SCHEDULE = "40 2 * * *"; // Midnight UTC
-const CACHE_REBUILD_SCHEDULE_NEXT50 = "45 2 * * *";
-const CACHE_REBUILD_SCHEDULE_MID50 = "0 6 * * *";
+const CACHE_CLEANUP_SCHEDULE = "15 2 * * *"; // Midnight UTC
+const CACHE_REBUILD_SCHEDULE_NEXT50 = "20 2 * * *";
+const CACHE_REBUILD_SCHEDULE_MID50 = "25 2 * * *";
 const CACHE_REBUILD_SCHEDULE_MID100 = "10 6 * * *";
 const CACHE_REBUILD_SCHEDULE_MID150 = "20 6 * * *";
 
