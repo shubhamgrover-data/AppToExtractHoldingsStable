@@ -1,4 +1,5 @@
 const Redis = require("ioredis");
+const { REDISSWITCH } = require("./cacheWrapper.js");
 
 const redisClient = new Redis({
   host: "127.0.0.1",
@@ -9,4 +10,7 @@ redisClient.on("connect", () => {
   console.log("Redis connected");
 });
 
+redisClient.on("error", () => {
+  console.log("Redis error");
+});
 module.exports = { redisClient };
