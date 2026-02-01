@@ -1,4 +1,4 @@
-const cacheCleanupAndRebuild = require("./cron.js");
+const { cacheCleanupAndRebuild } = require("./cron.js");
 const { CacheWrapper, REDISSWITCH } = require("./cacheWrapper.js");
 // Separate cache for persistent stock data results
 // Map of symbol -> { results, timestamp }
