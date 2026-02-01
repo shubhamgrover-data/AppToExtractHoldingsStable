@@ -47,6 +47,7 @@ function cacheClean_50(stockDataCache, stockMetadataCache, requestCache) {
       timezone: "Asia/Kolkata",
     },
   );
+  return result;
 }
 
 function cacheRebuild_NEXT50(stockDataCache, stockMetadataCache, requestCache) {
@@ -64,6 +65,8 @@ function cacheRebuild_NEXT50(stockDataCache, stockMetadataCache, requestCache) {
       timezone: "Asia/Kolkata",
     },
   );
+
+  return result;
 }
 
 function cacheRebuild_MID50(stockDataCache, stockMetadataCache, requestCache) {
@@ -81,6 +84,7 @@ function cacheRebuild_MID50(stockDataCache, stockMetadataCache, requestCache) {
       timezone: "Asia/Kolkata",
     },
   );
+  return result;
 }
 
 function cacheRebuild_MID100(stockDataCache, stockMetadataCache, requestCache) {
@@ -98,6 +102,7 @@ function cacheRebuild_MID100(stockDataCache, stockMetadataCache, requestCache) {
       timezone: "Asia/Kolkata",
     },
   );
+  return result;
 }
 
 function cacheRebuild_MID150(stockDataCache, stockMetadataCache, requestCache) {
@@ -115,6 +120,7 @@ function cacheRebuild_MID150(stockDataCache, stockMetadataCache, requestCache) {
       timezone: "Asia/Kolkata",
     },
   );
+  return result;
 }
 
 function cacheCleanupAndRebuild(
