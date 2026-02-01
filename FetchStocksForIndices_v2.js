@@ -347,6 +347,7 @@ async function getStockMetadata(symbol, stockMetadataCache, options = {}) {
     // Update cache
     const metadata = { pk: String(pk), slug: String(slug) };
     if (stockMetadataCache) {
+      //await redis.set(normalizedSymbol, metadata);
       stockMetadataCache.set(normalizedSymbol, metadata);
       // console.log(
       //   `[getStockMetadata] Updated metdata cache for ${normalizedSymbol}`,
