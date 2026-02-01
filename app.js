@@ -12,7 +12,7 @@ const { extractInsightStandalone } = require("./standalone_extractor.js");
 const { fetchAndProcessIndexStocks } = require("./FetchStocksForIndices_v2.js");
 const { cacheCleanupAndRebuild } = require("./cron.js");
 
-const { CacheWrapper, REDISSWITCH } = require("./cacheWrapper.js");
+const { CacheWrapper } = require("./cacheWrapper.js");
 
 // Configuration for max stocks in one bulk request
 const MAX_STOCKS_PER_REQUEST = 20;
@@ -26,32 +26,7 @@ const requestCache = new CacheWrapper("requestCache");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-if (!REDISSWITCH) {
-  const cronResults = cacheCleanupAndRebuild(
-    stockDataCache,
-    stockMetadataCache,
-    requestCache,
-  );
-  console.log(
-    "Cron worker status at",
-    new Date().toString(),
-    "\n",
-    "NIFTY 50:",
-    cronResults[0].getStatus(),
-    "\n",
-    "NIFTY NEXT 50:",
-    cronResults[1].getStatus(),
-    "\n",
-    "NIFTY MIDCAP 50:",
-    cronResults[2].getStatus(),
-    "\n",
-    "NIFTY MIDCAP 100:",
-    cronResults[3].getStatus(),
-    "\n",
-    "NIFTY MIDCAP 150:",
-    cronResults[4].getStatus(),
-  );
-}
+
 // Middleware
 app.use(
   cors({
