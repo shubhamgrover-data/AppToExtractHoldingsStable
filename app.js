@@ -24,7 +24,12 @@ const requestCache = new Map();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-cacheCleanupAndRebuild(stockDataCache, stockMetadataCache, requestCache);
+const cronResult = cacheCleanupAndRebuild(
+  stockDataCache,
+  stockMetadataCache,
+  requestCache,
+);
+console.log("Cron jobs status:", cronResult);
 // Middleware
 app.use(
   cors({

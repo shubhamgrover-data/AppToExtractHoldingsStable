@@ -15,12 +15,14 @@ function parseTableToJSON(htmlString) {
     const table = doc.querySelector("table");
 
     if (!table) {
-        console.error("[parseTableToJSON] No table element found in HTML string");
+        console.error(
+            "[parseTableToJSON] No table element found in HTML string",
+        );
         throw new Error("No table found.");
     }
 
     const rows = Array.from(table.querySelectorAll("tr"));
-    console.log(`[parseTableToJSON] Found ${rows.length} rows`);
+    //console.log(`[parseTableToJSON] Found ${rows.length} rows`);
     const headerRows = rows.filter(
         (row) => row.querySelectorAll("th").length > 0,
     );
@@ -28,7 +30,7 @@ function parseTableToJSON(htmlString) {
         (row) => row.querySelectorAll("td").length > 0,
     );
 
-   // console.log(`[parseTableToJSON] Headers rows: ${headerRows.length}, Body rows: ${bodyRows.length}`);
+    // console.log(`[parseTableToJSON] Headers rows: ${headerRows.length}, Body rows: ${bodyRows.length}`);
 
     // --- STEP 1: RESOLVE HEADERS (Handling Rowspan/Colspan) ---
     const headerMatrix = [];
@@ -61,14 +63,15 @@ function parseTableToJSON(htmlString) {
     });
 
     // Flatten headers: ["Dec-2025", "AUM (Cr)"] -> "Dec-2025_AUM (Cr)"
-    const finalHeaders = headerMatrix[0]?.map((_, c) => {
-        const path = [];
-        for (let r = 0; r < headerMatrix.length; r++) {
-            const val = headerMatrix[r][c];
-            if (val && !path.includes(val)) path.push(val);
-        }
-        return path.join("_");
-    }) || [];
+    const finalHeaders =
+        headerMatrix[0]?.map((_, c) => {
+            const path = [];
+            for (let r = 0; r < headerMatrix.length; r++) {
+                const val = headerMatrix[r][c];
+                if (val && !path.includes(val)) path.push(val);
+            }
+            return path.join("_");
+        }) || [];
 
     //console.log("[parseTableToJSON] Final headers:", finalHeaders);
 
@@ -104,7 +107,9 @@ function parseTableToJSON(htmlString) {
         return rowData;
     });
 
-    console.log(`[parseTableToJSON] Successfully parsed ${result.length} data rows`);
+    console.log(
+        `[parseTableToJSON] Successfully parsed ${result.length} data rows`,
+    );
     return result;
 }
 
@@ -123,7 +128,9 @@ async function extractInsightLogic(url, attribute, attributeValue, tagName) {
     console.log(`[extractInsightLogic] HTML fetched (${html.length} chars)`);
 
     if (attribute && attributeValue) {
-        console.log(`[extractInsightLogic] Target: ${tagName}[${attribute}="${attributeValue}"]`);
+        console.log(
+            `[extractInsightLogic] Target: ${tagName}[${attribute}="${attributeValue}"]`,
+        );
         const dom = new JSDOM(html);
         const document = dom.window.document;
         return fetchDataFromUrl(document, tagName, attribute, attributeValue);
@@ -134,7 +141,9 @@ async function extractInsightLogic(url, attribute, attributeValue, tagName) {
         return fetchAttributeFromUrl(element, attribute);
     }
 
-    console.log("[extractInsightLogic] No specific target, returning full HTML");
+    console.log(
+        "[extractInsightLogic] No specific target, returning full HTML",
+    );
     return { type: "html", data: html };
 }
 
@@ -147,7 +156,9 @@ function fetchDataFromUrl(document, tagName, attribute, attributeValue) {
 
     if (element) {
         const elementHtml = element.outerHTML;
-        console.log(`[fetchDataFromUrl] Element found (${elementHtml.length} chars)`);
+        console.log(
+            `[fetchDataFromUrl] Element found (${elementHtml.length} chars)`,
+        );
         if (tagName === "table") {
             return { type: "json", data: parseTableToJSON(elementHtml) };
         }
@@ -162,24 +173,32 @@ function fetchDataFromUrl(document, tagName, attribute, attributeValue) {
 function fetchAttributeFromUrl(element, attribute) {
     if (element.length) {
         const attrValue = element.attr(attribute);
-        console.log(`[fetchAttributeFromUrl] Attribute "${attribute}" found, value length: ${attrValue?.length || 0}`);
+        console.log(
+            `[fetchAttributeFromUrl] Attribute "${attribute}" found, value length: ${attrValue?.length || 0}`,
+        );
         if (attrValue) {
             try {
                 const jsonData = JSON.parse(attrValue);
-                console.log("[fetchAttributeFromUrl] Successfully parsed attribute as JSON");
+                console.log(
+                    "[fetchAttributeFromUrl] Successfully parsed attribute as JSON",
+                );
                 if (
                     Array.isArray(jsonData) &&
                     jsonData[0] &&
                     jsonData[0][1] &&
                     jsonData[0][1].tableData
                 ) {
-                    console.log("[fetchAttributeFromUrl] Detected nested tableData structure");
+                    console.log(
+                        "[fetchAttributeFromUrl] Detected nested tableData structure",
+                    );
                     return { type: "json", data: jsonData[0][1].tableData };
                 }
 
                 return { type: "json", data: jsonData };
             } catch (e) {
-                console.warn("[fetchAttributeFromUrl] Attribute value is not valid JSON, returning raw value");
+                console.warn(
+                    "[fetchAttributeFromUrl] Attribute value is not valid JSON, returning raw value",
+                );
                 return {
                     type: "json",
                     data: null,
@@ -188,10 +207,14 @@ function fetchAttributeFromUrl(element, attribute) {
                 };
             }
         }
-        console.error(`[fetchAttributeFromUrl] Attribute "${attribute}" found but is empty`);
+        console.error(
+            `[fetchAttributeFromUrl] Attribute "${attribute}" found but is empty`,
+        );
         throw new Error(`Attribute "${attribute}" found but is empty`);
     }
-    console.error(`[fetchAttributeFromUrl] Element with attribute "${attribute}" not found`);
+    console.error(
+        `[fetchAttributeFromUrl] Element with attribute "${attribute}" not found`,
+    );
     throw new Error(`Element with attribute "${attribute}" not found`);
 }
 //extractInsightLogic("https://trendlyne.com/fundamentals/financials/1372/TCS/tata-consultancy-services-ltd/","data-stock-insight","","",);

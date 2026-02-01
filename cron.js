@@ -33,7 +33,7 @@ const CACHE_REBUILD = [
 ];
 
 function cacheClean_50(stockDataCache, stockMetadataCache, requestCache) {
-  cron.schedule(
+  const result = cron.schedule(
     CACHE_REBUILD[0].schedule,
     () => () =>
       cacheJob(
@@ -50,7 +50,7 @@ function cacheClean_50(stockDataCache, stockMetadataCache, requestCache) {
 }
 
 function cacheRebuild_NEXT50(stockDataCache, stockMetadataCache, requestCache) {
-  cron.schedule(
+  const result = cron.schedule(
     CACHE_REBUILD[1].schedule,
     () =>
       cacheJob(
@@ -67,7 +67,7 @@ function cacheRebuild_NEXT50(stockDataCache, stockMetadataCache, requestCache) {
 }
 
 function cacheRebuild_MID50(stockDataCache, stockMetadataCache, requestCache) {
-  cron.schedule(
+  const result = cron.schedule(
     CACHE_REBUILD[2].schedule,
     () =>
       cacheJob(
@@ -84,7 +84,7 @@ function cacheRebuild_MID50(stockDataCache, stockMetadataCache, requestCache) {
 }
 
 function cacheRebuild_MID100(stockDataCache, stockMetadataCache, requestCache) {
-  cron.schedule(
+  const result = cron.schedule(
     CACHE_REBUILD[3].schedule,
     () =>
       cacheJob(
@@ -101,7 +101,7 @@ function cacheRebuild_MID100(stockDataCache, stockMetadataCache, requestCache) {
 }
 
 function cacheRebuild_MID150(stockDataCache, stockMetadataCache, requestCache) {
-  cron.schedule(
+  const result = cron.schedule(
     CACHE_REBUILD[4].schedule,
     () =>
       cacheJob(
@@ -122,11 +122,34 @@ function cacheCleanupAndRebuild(
   stockMetadataCache,
   requestCache,
 ) {
-  cacheClean_50(stockDataCache, stockMetadataCache, requestCache);
-  cacheRebuild_NEXT50(stockDataCache, stockMetadataCache, requestCache);
-  cacheRebuild_MID50(stockDataCache, stockMetadataCache, requestCache);
-  cacheRebuild_MID100(stockDataCache, stockMetadataCache, requestCache);
-  cacheRebuild_MID150(stockDataCache, stockMetadataCache, requestCache);
+  const cronResult = [];
+  cronResult[0] = cacheClean_50(
+    stockDataCache,
+    stockMetadataCache,
+    requestCache,
+  );
+  cronResult[1] = cacheRebuild_NEXT50(
+    stockDataCache,
+    stockMetadataCache,
+    requestCache,
+  );
+  cronResult[2] = cacheRebuild_MID50(
+    stockDataCache,
+    stockMetadataCache,
+    requestCache,
+  );
+  cronResult[3] = cacheRebuild_MID100(
+    stockDataCache,
+    stockMetadataCache,
+    requestCache,
+  );
+  cronResult[4] = cacheRebuild_MID150(
+    stockDataCache,
+    stockMetadataCache,
+    requestCache,
+  );
+
+  return cronResult;
 }
 
 module.exports = { cacheCleanupAndRebuild };
