@@ -306,12 +306,14 @@ async function getStockMetadata(symbol, stockMetadataCache, options = {}) {
   }
 
   // Check cache before fetching
-  if (stockMetadataCache && stockMetadataCache.has(normalizedSymbol)) {
-    const cachedData = stockMetadataCache.get(normalizedSymbol);
-    console.log(
-      `[getStockMetadata] Cache HIT for ${normalizedSymbol}: pk=${cachedData.pk}, slug=${cachedData.slug}`,
-    );
-    return { symbol: normalizedSymbol, ...cachedData };
+  if (stockMetadataCache) {
+    const cachedData = await stockMetadataCache.get(normalizedSymbol);
+    if (cachedData) {
+      console.log(
+        `[getStockMetadata] Cache HIT for ${normalizedSymbol}: pk=${cachedData.pk}, slug=${cachedData.slug}`,
+      );
+      return { symbol: normalizedSymbol, ...cachedData };
+    }
   }
 
   console.log(
@@ -347,11 +349,7 @@ async function getStockMetadata(symbol, stockMetadataCache, options = {}) {
     // Update cache
     const metadata = { pk: String(pk), slug: String(slug) };
     if (stockMetadataCache) {
-      //await redis.set(normalizedSymbol, metadata);
-      stockMetadataCache.set(normalizedSymbol, metadata);
-      // console.log(
-      //   `[getStockMetadata] Updated metdata cache for ${normalizedSymbol}`,
-      // );
+      await stockMetadataCache.set(normalizedSymbol, metadata);
     }
 
     return { symbol: normalizedSymbol, ...metadata };
@@ -392,8 +390,8 @@ async function initiateBulkInsightExtraction(
   stockDataCache,
   options = {},
 ) {
-  if (!stockDataCache || !(stockDataCache instanceof Map)) {
-    throw new Error("stockDataCache must be a Map instance");
+  if (!stockDataCache) {
+    throw new Error("stockDataCache must be provided");
   }
 
   const settings = { ...DEFAULT_OPTIONS, ...options };
@@ -415,8 +413,8 @@ async function initiateBulkInsightExtraction(
       const normalizedSym = settings.normalizeSymbols
         ? normalizeSymbol(sym)
         : sym;
-      if (stockDataCache.has(normalizedSym)) {
-        const cached = stockDataCache.get(normalizedSym);
+      const cached = await stockDataCache.get(normalizedSym);
+      if (cached) {
         console.log(
           `[initiateBulkInsightExtraction] Found cache for ${normalizedSym} (timestamp: ${new Date(cached.timestamp).toISOString()})`,
         );
@@ -486,7 +484,7 @@ async function initiateBulkInsightExtraction(
 
   // Add cached results first
   for (const symbol of cachedSymbols) {
-    const cached = stockDataCache.get(symbol);
+    const cached = await stockDataCache.get(symbol);
     results[symbol] = cached.results;
     console.log(
       `[initiateBulkInsightExtraction] Using cached results for ${symbol}`,
@@ -506,7 +504,7 @@ async function initiateBulkInsightExtraction(
           data: null,
         }));
         // Store in cache even for mock data
-        stockDataCache.set(stock.Symbol, {
+        await stockDataCache.set(stock.Symbol, {
           results: results[stock.Symbol],
           timestamp: Date.now(),
         });
@@ -535,7 +533,7 @@ async function initiateBulkInsightExtraction(
 
           // Store each symbol's results in cache
           for (const [symbol, symbolResults] of Object.entries(batchResults)) {
-            stockDataCache.set(symbol, {
+            await stockDataCache.set(symbol, {
               results: symbolResults,
               timestamp: Date.now(),
             });
@@ -586,8 +584,8 @@ async function fetchAndProcessIndexStocks(
     throw new Error("Index name must be a non-empty string");
   }
 
-  if (!stockDataCache || !(stockDataCache instanceof Map)) {
-    throw new Error("stockDataCache must be a Map instance");
+  if (!stockDataCache) {
+    throw new Error("stockDataCache must be a instance");
   }
 
   try {
