@@ -13,7 +13,7 @@ const { fetchAndProcessIndexStocks } = require("./FetchStocksForIndices_v2.js");
 const { cacheCleanupAndRebuild } = require("./cron.js");
 
 // Configuration for max stocks in one bulk request
-const MAX_STOCKS_PER_REQUEST = 10;
+const MAX_STOCKS_PER_REQUEST = 20;
 // Separate cache for persistent stock data results
 // Map of symbol -> { results, timestamp }
 const stockDataCache = new Map();
@@ -266,9 +266,9 @@ app.get("/api/extract-data", async (req, res) => {
             };
             if (stockMetadataCache) {
               stockMetadataCache.set(symbol, metadata);
-              console.log(
-                `[GET /api/extract-data] Updated metadata cache for ${symbol}`,
-              );
+              // console.log(
+              //   `[GET /api/extract-data] Updated metadata cache for ${symbol}`,
+              // );
             }
           }
           return res.json(stockMetadataCache.get(symbol));
@@ -371,7 +371,7 @@ app.post("/api/extractinsight", async (req, res) => {
     for (const stock of stocks) {
       const { Symbol: symbol } = stock;
       // Check stockDataCache first before fetching from URL
-      if (!invalidateCache && stockDataCache.has(symbol)) {
+      if (invalidateCache != "true" && stockDataCache.has(symbol)) {
         console.log(
           `[extractinsight] [Standalone] Using cached data for ${symbol}`,
         );
@@ -711,8 +711,6 @@ app.get("/api/triggerRefresh", async (req, res) => {
       stockDataCache: stockDataCache.size,
       stockMetadataCache: stockMetadataCache.size,
       requestCache: requestCache.size,
-      stockDataCacheData: stockDataCache.entries(),
-      stockMetadataCacheData: stockMetadataCache.entries(),
       message: "Caches not cleared",
     });
   }
