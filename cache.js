@@ -14,8 +14,8 @@ const cacheJob = async (
     console.log(
       `[Cache] Running scheduled cleanup at ${new Date().toUTCString()}`,
     );
-    stockDataCache.clear();
-    requestCache.clear();
+    await stockDataCache.clear();
+    await requestCache.clear();
     //stockMetadataCache.clear(); not required
     console.log("[Cache] All caches cleared.");
     // Refresh cache for NIFTY 50 (you can add more indices)

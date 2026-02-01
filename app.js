@@ -12,15 +12,17 @@ const { extractInsightStandalone } = require("./standalone_extractor.js");
 const { fetchAndProcessIndexStocks } = require("./FetchStocksForIndices_v2.js");
 const { cacheCleanupAndRebuild } = require("./cron.js");
 
+const { CacheWrapper } = require("./cacheWrapper.js");
+
 // Configuration for max stocks in one bulk request
 const MAX_STOCKS_PER_REQUEST = 20;
 // Separate cache for persistent stock data results
 // Map of symbol -> { results, timestamp }
-const stockDataCache = new Map();
+const stockDataCache = new CacheWrapper("stockDataCache");
 // In-memory cache for stock metadata (symbol -> {pk, slug})
-const stockMetadataCache = new Map();
+const stockMetadataCache = new CacheWrapper("stockMetadataCache");
 // In-memory cache for background requests
-const requestCache = new Map();
+const requestCache = new CacheWrapper("requestCache");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -40,6 +42,7 @@ app.use(
       "Authorization",
       "X-Requested-With",
       "Accept",
+      "X-Custom-Header",
     ],
     credentials: true,
   }),
@@ -70,8 +73,8 @@ app.post("/api/extract", async (req, res) => {
         const symbolMatch = url.match(/\/equity\/([^/]+)\/stock-page\//);
         if (symbolMatch) {
           const symbol = symbolMatch[1].toUpperCase();
-          if (stockMetadataCache.has(symbol)) {
-            const cached = stockMetadataCache.get(symbol);
+          const cached = await stockMetadataCache.get(symbol);
+          if (cached) {
             console.log(
               `[POST /api/extract] Cache HIT for ${symbol} attribute ${attribute}`,
             );
@@ -171,8 +174,8 @@ app.get("/api/extract-data", async (req, res) => {
     const symbolMatch = url.match(/\/equity\/([^/]+)\/stock-page\/?$/);
     if (symbolMatch) {
       symbol = symbolMatch[1].toUpperCase();
-      if (stockMetadataCache.has(symbol)) {
-        const cached = stockMetadataCache.get(symbol);
+      const cached = await stockMetadataCache.get(symbol);
+      if (cached) {
         console.log(
           `[GET /api/extract-data] Cache HIT for ${symbol} attribute ${attribute}`,
         );
@@ -270,13 +273,14 @@ app.get("/api/extract-data", async (req, res) => {
               slug: String(multiResults["data-stockslugname"]),
             };
             if (stockMetadataCache) {
-              stockMetadataCache.set(symbol, metadata);
+              await stockMetadataCache.set(symbol, metadata);
               // console.log(
               //   `[GET /api/extract-data] Updated metadata cache for ${symbol}`,
               // );
             }
           }
-          return res.json(stockMetadataCache.get(symbol));
+          const finalMetadata = await stockMetadataCache.get(symbol);
+          return res.json(finalMetadata);
         }
         return res.json(multiResults);
       } else {
@@ -361,7 +365,7 @@ app.post("/api/extractinsight", async (req, res) => {
 
   if (useStandalone) {
     // Initialize cache entry for the request
-    requestCache.set(requestId, {
+    await requestCache.set(requestId, {
       status: "pending",
       results: {},
       completedStocks: 0,
@@ -376,11 +380,11 @@ app.post("/api/extractinsight", async (req, res) => {
     for (const stock of stocks) {
       const { Symbol: symbol } = stock;
       // Check stockDataCache first before fetching from URL
-      if (invalidateCache != "true" && stockDataCache.has(symbol)) {
+      const cachedStockData = (invalidateCache != "true") ? await stockDataCache.get(symbol) : null;
+      if (cachedStockData) {
         console.log(
           `[extractinsight] [Standalone] Using cached data for ${symbol}`,
         );
-        const cachedStockData = stockDataCache.get(symbol);
         cachedResults[symbol] = cachedStockData.results;
       } else {
         stocksToFetch.push(stock);
@@ -390,7 +394,7 @@ app.post("/api/extractinsight", async (req, res) => {
     // Execute standalone only for stocks that need fetching
     (async () => {
       try {
-        const cachedData = requestCache.get(requestId);
+        const cachedData = await requestCache.get(requestId);
         if (!cachedData) return;
 
         // Add cached results first
@@ -402,6 +406,7 @@ app.post("/api/extractinsight", async (req, res) => {
         // If all stocks were cached, mark as resolved
         if (stocksToFetch.length === 0) {
           cachedData.status = "resolved";
+          await requestCache.set(requestId, cachedData);
           console.log(
             `[extractinsight] Standalone execution completed for ${requestId} (all from cache)`,
           );
@@ -417,13 +422,14 @@ app.post("/api/extractinsight", async (req, res) => {
           cachedData.completedStocks++;
 
           // Update persistent stockDataCache
-          stockDataCache.set(symbol, {
+          await stockDataCache.set(symbol, {
             results: fetchedResults[symbol],
             timestamp: Date.now(),
           });
         }
 
         cachedData.status = "resolved";
+        await requestCache.set(requestId, cachedData);
         console.log(
           `[extractinsight] Standalone execution completed for ${requestId}`,
         );
@@ -432,10 +438,11 @@ app.post("/api/extractinsight", async (req, res) => {
           `[extractinsight] Standalone execution failed for ${requestId}:`,
           error,
         );
-        const cachedData = requestCache.get(requestId);
+        const cachedData = await requestCache.get(requestId);
         if (cachedData) {
           cachedData.status = "failed";
           cachedData.error = error.message;
+          await requestCache.set(requestId, cachedData);
         }
       }
     })();
@@ -450,7 +457,7 @@ app.post("/api/extractinsight", async (req, res) => {
 
   // Original worker logic (unchanged)
   // Initialize cache entry for the request
-  requestCache.set(requestId, {
+  await requestCache.set(requestId, {
     status: "pending",
     results: {}, // Map of symbol -> results
     completedStocks: 0,
@@ -458,90 +465,93 @@ app.post("/api/extractinsight", async (req, res) => {
     timestamp: Date.now(),
   });
 
-  const checkCompletion = () => {
-    const cachedData = requestCache.get(requestId);
+  const checkCompletion = async () => {
+    const cachedData = await requestCache.get(requestId);
     if (cachedData && cachedData.completedStocks === cachedData.totalStocks) {
       cachedData.status = "resolved";
+      await requestCache.set(requestId, cachedData);
       console.log(`[extractinsight] All stocks for ${requestId} completed.`);
     }
   };
 
-  stocks.forEach((stock) => {
+  for (const stock of stocks) {
     const { Symbol: symbol, data } = stock;
 
     if (!symbol || !data) {
       console.error(`[extractinsight] Skipping invalid stock entry:`, stock);
-      const cachedData = requestCache.get(requestId);
+      const cachedData = await requestCache.get(requestId);
       if (cachedData) {
         cachedData.completedStocks++;
-        checkCompletion();
+        await requestCache.set(requestId, cachedData);
+        await checkCompletion();
       }
-      return;
+      continue;
     }
 
     // Check if symbol data exists in cache and should be used
-    if (!invalidateCache && stockDataCache.has(symbol)) {
+    const cachedStockData = (!invalidateCache) ? await stockDataCache.get(symbol) : null;
+    if (cachedStockData) {
       console.log(`[extractinsight] Using cached data for ${symbol}`);
-      const cachedStockData = stockDataCache.get(symbol);
-      const reqCachedData = requestCache.get(requestId);
+      const reqCachedData = await requestCache.get(requestId);
       if (reqCachedData) {
         reqCachedData.results[symbol] = cachedStockData.results;
         reqCachedData.completedStocks++;
-        checkCompletion();
+        await requestCache.set(requestId, reqCachedData);
+        await checkCompletion();
       }
-      return;
+      continue;
     }
 
     const worker = new Worker("./worker.js", {
       workerData: { symbol, data },
     });
 
-    worker.on("message", (message) => {
+    worker.on("message", async (message) => {
       console.log(
         `[extractinsight] Worker completed for ${symbol} in request ${requestId}`,
       );
-      const cachedData = requestCache.get(requestId);
+      const cachedData = await requestCache.get(requestId);
       if (cachedData) {
         // Save to persistent stock cache
-        stockDataCache.set(symbol, {
+        await stockDataCache.set(symbol, {
           results: message.results,
           timestamp: Date.now(),
         });
 
         cachedData.results[symbol] = message.results;
         cachedData.completedStocks++;
-        checkCompletion();
+        await requestCache.set(requestId, cachedData);
+        await checkCompletion();
       }
     });
 
-    worker.on("error", (error) => {
+    worker.on("error", async (error) => {
       console.error(
         `[extractinsight] Worker error for ${symbol} in request ${requestId}:`,
         error,
       );
-      const cachedData = requestCache.get(requestId);
+      const cachedData = await requestCache.get(requestId);
       if (cachedData) {
         cachedData.results[symbol] = { success: false, error: error.message };
         cachedData.completedStocks++;
-        checkCompletion();
+        await requestCache.set(requestId, cachedData);
+        await checkCompletion();
       }
     });
-  });
+  }
 
   res.json({ requestId, status: "pending", totalStocks: stocks.length });
 });
 // Endpoint to check status of a request
-app.get("/api/extractinsight/status/:requestId", (req, res) => {
+app.get("/api/extractinsight/status/:requestId", async (req, res) => {
   const { requestId } = req.params;
   console.log(`[status] Checking status for requestId: ${requestId}`);
-  const cachedData = requestCache.get(requestId);
+  const cachedData = await requestCache.get(requestId);
 
   if (!cachedData) {
+    const size = await requestCache.getSize();
     console.error(
-      `[status] RequestId ${requestId} not found in cache. Current cache size: ${requestCache.size}`,
-    );
-    console.log(
-      `[status] Available IDs: ${Array.from(requestCache.keys()).join(", ")}`,
+      `[status] RequestId ${requestId} not found in cache. Current cache size: ${size}`,
     );
     return res.status(404).json({ error: "Request ID not found" });
   }
@@ -555,7 +565,7 @@ app.get("/api/extractinsight/status/:requestId", (req, res) => {
     console.log(
       `[status] Request ${requestId} is resolved and has been fetched. Cleaning up request cache.`,
     );
-    requestCache.delete(requestId);
+    await requestCache.delete(requestId);
   }
 });
 
@@ -702,7 +712,7 @@ app.get("/api/triggerRefresh", async (req, res) => {
 
   if (clearCache === "yes") {
     console.log(`[triggerRefresh] Triggering refresh with clear cache`);
-    stockDataCache.clear();
+    await stockDataCache.clear();
     //stockMetadataCache.clear(); not required
     //requestCache.clear(); not required
     return res.json({
