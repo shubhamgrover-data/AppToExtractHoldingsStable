@@ -340,17 +340,17 @@ async function getStockMetadata(symbol, stockMetadataCache, options = {}) {
       };
     }
 
-    console.log(
-      `[getStockMetadata] Resolved ${normalizedSymbol}: pk=${pk}, slug=${slug}`,
-    );
+    // console.log(
+    //   `[getStockMetadata] Resolved ${normalizedSymbol}: pk=${pk}, slug=${slug}`,
+    // );
 
     // Update cache
     const metadata = { pk: String(pk), slug: String(slug) };
     if (stockMetadataCache) {
       stockMetadataCache.set(normalizedSymbol, metadata);
-      console.log(
-        `[getStockMetadata] Updated metdata cache for ${normalizedSymbol}`,
-      );
+      // console.log(
+      //   `[getStockMetadata] Updated metdata cache for ${normalizedSymbol}`,
+      // );
     }
 
     return { symbol: normalizedSymbol, ...metadata };
