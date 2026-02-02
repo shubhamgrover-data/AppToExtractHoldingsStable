@@ -2,7 +2,7 @@ const { fetchAndProcessIndexStocks } = require("./FetchStocksForIndices_v2.js");
 
 const cacheJob = async (
   INDEX,
-  CACHE_REFRESH,
+  FULL_CACHE_REFRESH,
   stockDataCache,
   stockMetadataCache,
   requestCache,
@@ -14,20 +14,22 @@ const cacheJob = async (
     console.log(
       `[Cache] Running scheduled cleanup at ${new Date().toUTCString()}`,
     );
-    await stockDataCache.clear();
-    await requestCache.clear();
-    //stockMetadataCache.clear(); not required
-    console.log("[Cache] All caches cleared.");
+    if (FULL_CACHE_REFRESH) {
+      await stockDataCache.clear();
+      await requestCache.clear();
+      //stockMetadataCache.clear(); not required
+      console.log("[Cache] All caches cleared.");
+    } else console.log("[Cache] Stock cache not cleared.");
     // Refresh cache for NIFTY 50 (you can add more indices)
     const result = await fetchAndProcessIndexStocks(INDEX, stockDataCache, {
       stockMetadataCache,
-      invalidateCache: CACHE_REFRESH, // Force refresh even if cached
+      invalidateCache: FULL_CACHE_REFRESH, // Force refresh even if cached
       metadataConcurrency: 10,
       batchSize: 10,
       batchConcurrency: 1,
     });
     console.log(
-      `[Cache Refresh] Completed. Processed ${result.processedSymbols} symbols, ` +
+      `[Cache Refresh] Completed. Processed ${INDEX} with ${result.processedSymbols} symbols, ` +
         `Fetched ${result.fetchedCount}, Cached ${result.cachedCount}`,
     );
   } catch (error) {
