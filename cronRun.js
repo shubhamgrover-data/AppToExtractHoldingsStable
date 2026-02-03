@@ -30,6 +30,12 @@ console.log(
   "\n",
   "NIFTY MIDCAP 150:",
   cronResults[4].getStatus(),
+  "\n",
+  "NIFTY SMALLCAP 50:",
+  cronResults[5].getStatus(),
+  "n",
+  "NIFTY SMALLCAP 100:",
+  cronResults[6].getStatus(),
 );
 // keep process alive
 setInterval(() => {}, 1000);

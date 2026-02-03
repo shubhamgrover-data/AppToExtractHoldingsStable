@@ -8,6 +8,8 @@ const CACHE_REBUILD_SCHEDULE_NEXT50 = "15 6 * * *";
 const CACHE_REBUILD_SCHEDULE_MID50 = "30 6 * * *";
 const CACHE_REBUILD_SCHEDULE_MID100 = "45 6 * * *";
 const CACHE_REBUILD_SCHEDULE_MID150 = "0 7 * * *";
+const CACHE_REBUILD_SCHEDULE_SMALL50 = "15 7 * * *";
+const CACHE_REBUILD_SCHEDULE_SMALL100 = "30 7 * * *";
 
 const CACHE_REBUILD = [
   { schedule: CACHE_CLEANUP_SCHEDULE, index: "NIFTY 50", cache: true },
@@ -31,12 +33,22 @@ const CACHE_REBUILD = [
     index: "NIFTY MIDCAP 150",
     cache: false,
   },
+  {
+    schedule: CACHE_REBUILD_SCHEDULE_SMALL50,
+    index: "NIFTY SMALLCAP 50",
+    cache: false,
+  },
+  {
+    schedule: CACHE_REBUILD_SCHEDULE_SMALL100,
+    index: "NIFTY SMALLCAP 100",
+    cache: false,
+  },
 ];
 
 function cacheClean_50(stockDataCache, stockMetadataCache, requestCache) {
   const result = cron.schedule(
     CACHE_REBUILD[0].schedule,
-    () => () =>
+    () =>
       cacheJob(
         CACHE_REBUILD[0].index,
         CACHE_REBUILD[0].cache,
@@ -124,6 +136,47 @@ function cacheRebuild_MID150(stockDataCache, stockMetadataCache, requestCache) {
   return result;
 }
 
+function cacheRebuild_SMALL50(
+  stockDataCache,
+  stockMetadataCache,
+  requestCache,
+) {
+  const result = cron.schedule(
+    CACHE_REBUILD[5].schedule,
+    () =>
+      cacheJob(
+        CACHE_REBUILD[5].index,
+        CACHE_REBUILD[5].cache,
+        stockDataCache,
+        stockMetadataCache,
+        requestCache,
+      ),
+    {
+      timezone: "Asia/Kolkata",
+    },
+  );
+}
+function cacheRebuild_SMALL100(
+  stockDataCache,
+  stockMetadataCache,
+  requestCache,
+) {
+  const result = cron.schedule(
+    CACHE_REBUILD[6].schedule,
+    () =>
+      cacheJob(
+        CACHE_REBUILD[5].index,
+        CACHE_REBUILD[5].cache,
+        stockDataCache,
+        stockMetadataCache,
+        requestCache,
+      ),
+    {
+      timezone: "Asia/Kolkata",
+    },
+  );
+}
+
 function cacheCleanupAndRebuild(
   stockDataCache,
   stockMetadataCache,
@@ -151,6 +204,16 @@ function cacheCleanupAndRebuild(
     requestCache,
   );
   cronResult[4] = cacheRebuild_MID150(
+    stockDataCache,
+    stockMetadataCache,
+    requestCache,
+  );
+  cronResult[5] = cacheRebuild_SMALL50(
+    stockDataCache,
+    stockMetadataCache,
+    requestCache,
+  );
+  cronResult[6] = cacheRebuild_SMALL100(
     stockDataCache,
     stockMetadataCache,
     requestCache,
