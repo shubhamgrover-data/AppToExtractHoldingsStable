@@ -35,12 +35,7 @@ const CACHE_REBUILD = [
     index: "NIFTY MIDCAP 150",
     cache: false,
   },
-  {
-    schedule: CACHE_REBUILD_SCHEDULE_SMALL250,
-    index: "NIFTY SMALLCAP 250",
-    cache: false,
-    batchSize: 50,
-  },
+
   {
     schedule: CACHE_REBUILD_SCHEDULE_SMALL50,
     index: "NIFTY SMALLCAP 50",
@@ -50,6 +45,12 @@ const CACHE_REBUILD = [
     schedule: CACHE_REBUILD_SCHEDULE_SMALL100,
     index: "NIFTY SMALLCAP 100",
     cache: false,
+  },
+  {
+    schedule: CACHE_REBUILD_SCHEDULE_SMALL250,
+    index: "NIFTY SMALLCAP 250",
+    cache: false,
+    batchSize: 50,
   },
 ];
 
