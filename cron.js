@@ -3,15 +3,15 @@ const cron = require("node-cron");
 
 // Configuration for cache cleanup time (UTC)
 
-const CACHE_CLEANUP_SCHEDULE = "0 3 * * *"; // Midnight UTC
-const CACHE_REBUILD_SCHEDULE_NEXT50 = "15 3 * * *";
-const CACHE_REBUILD_SCHEDULE_MID50 = "30 3 * * *";
-const CACHE_REBUILD_SCHEDULE_MID100 = "45 3 * * *";
-const CACHE_REBUILD_SCHEDULE_MID150 = "0 4 * * *";
-const CACHE_REBUILD_SCHEDULE_SMALL50 = "15 4 * * *";
-const CACHE_REBUILD_SCHEDULE_SMALL100 = "30 4 * * *";
+const CACHE_CLEANUP_SCHEDULE = "0 6 * * *"; // Midnight UTC
+const CACHE_REBUILD_SCHEDULE_NEXT50 = "15 6 * * *";
+const CACHE_REBUILD_SCHEDULE_MID50 = "30 6 * * *";
+const CACHE_REBUILD_SCHEDULE_MID100 = "45 6 * * *";
+const CACHE_REBUILD_SCHEDULE_MID150 = "0 7 * * *";
+const CACHE_REBUILD_SCHEDULE_SMALL50 = "15 7 * * *";
+const CACHE_REBUILD_SCHEDULE_SMALL100 = "30 7 * * *";
 // Schedule: Every 30 minutes from 08:30 to 20:30 (Matches the cron.js requirement)
-const CACHE_REBUILD_SCHEDULE_SMALL250 = "*/30 5-8 * * *";
+const CACHE_REBUILD_SCHEDULE_SMALL250 = "*/30 8-20 * * *";
 
 const CACHE_REBUILD = [
   { schedule: CACHE_CLEANUP_SCHEDULE, index: "NIFTY 50", cache: true },
@@ -36,6 +36,12 @@ const CACHE_REBUILD = [
     cache: false,
   },
   {
+    schedule: CACHE_REBUILD_SCHEDULE_SMALL250,
+    index: "NIFTY SMALLCAP 250",
+    cache: false,
+    batchSize: 50,
+  },
+  {
     schedule: CACHE_REBUILD_SCHEDULE_SMALL50,
     index: "NIFTY SMALLCAP 50",
     cache: false,
@@ -45,168 +51,7 @@ const CACHE_REBUILD = [
     index: "NIFTY SMALLCAP 100",
     cache: false,
   },
-  {
-    schedule: CACHE_REBUILD_SCHEDULE_SMALL250,
-    index: "NIFTY SMALLCAP 250",
-    cache: false,
-    batchSize: 50,
-  },
 ];
-
-function cacheClean_50(stockDataCache, stockMetadataCache, requestCache) {
-  const result = cron.schedule(
-    CACHE_REBUILD[0].schedule,
-    () =>
-      cacheJob(
-        CACHE_REBUILD[0].index,
-        CACHE_REBUILD[0].cache,
-        stockDataCache,
-        stockMetadataCache,
-        requestCache,
-      ),
-    {
-      timezone: "Asia/Kolkata",
-    },
-  );
-  return result;
-}
-
-function cacheRebuild_NEXT50(stockDataCache, stockMetadataCache, requestCache) {
-  const result = cron.schedule(
-    CACHE_REBUILD[1].schedule,
-    () =>
-      cacheJob(
-        CACHE_REBUILD[1].index,
-        CACHE_REBUILD[1].cache,
-        stockDataCache,
-        stockMetadataCache,
-        requestCache,
-      ),
-    {
-      timezone: "Asia/Kolkata",
-    },
-  );
-
-  return result;
-}
-
-function cacheRebuild_MID50(stockDataCache, stockMetadataCache, requestCache) {
-  const result = cron.schedule(
-    CACHE_REBUILD[2].schedule,
-    () =>
-      cacheJob(
-        CACHE_REBUILD[2].index,
-        CACHE_REBUILD[2].cache,
-        stockDataCache,
-        stockMetadataCache,
-        requestCache,
-      ),
-    {
-      timezone: "Asia/Kolkata",
-    },
-  );
-  return result;
-}
-
-function cacheRebuild_MID100(stockDataCache, stockMetadataCache, requestCache) {
-  const result = cron.schedule(
-    CACHE_REBUILD[3].schedule,
-    () =>
-      cacheJob(
-        CACHE_REBUILD[3].index,
-        CACHE_REBUILD[3].cache,
-        stockDataCache,
-        stockMetadataCache,
-        requestCache,
-      ),
-    {
-      timezone: "Asia/Kolkata",
-    },
-  );
-  return result;
-}
-
-function cacheRebuild_MID150(stockDataCache, stockMetadataCache, requestCache) {
-  const result = cron.schedule(
-    CACHE_REBUILD[4].schedule,
-    () =>
-      cacheJob(
-        CACHE_REBUILD[4].index,
-        CACHE_REBUILD[4].cache,
-        stockDataCache,
-        stockMetadataCache,
-        requestCache,
-      ),
-    {
-      timezone: "Asia/Kolkata",
-    },
-  );
-  return result;
-}
-
-function cacheRebuild_SMALL50(
-  stockDataCache,
-  stockMetadataCache,
-  requestCache,
-) {
-  const result = cron.schedule(
-    CACHE_REBUILD[5].schedule,
-    () =>
-      cacheJob(
-        CACHE_REBUILD[5].index,
-        CACHE_REBUILD[5].cache,
-        stockDataCache,
-        stockMetadataCache,
-        requestCache,
-      ),
-    {
-      timezone: "Asia/Kolkata",
-    },
-  );
-  return result;
-}
-function cacheRebuild_SMALL100(
-  stockDataCache,
-  stockMetadataCache,
-  requestCache,
-) {
-  const result = cron.schedule(
-    CACHE_REBUILD[6].schedule,
-    () =>
-      cacheJob(
-        CACHE_REBUILD[5].index,
-        CACHE_REBUILD[5].cache,
-        stockDataCache,
-        stockMetadataCache,
-        requestCache,
-      ),
-    {
-      timezone: "Asia/Kolkata",
-    },
-  );
-  return result;
-}
-function cacheRebuild_SMALL250(
-  stockDataCache,
-  stockMetadataCache,
-  requestCache,
-) {
-  const result = cron.schedule(
-    CACHE_REBUILD[7].schedule,
-    () =>
-      runBatchJob(
-        CACHE_REBUILD[7].index,
-        CACHE_REBUILD[7].cache,
-        stockDataCache,
-        stockMetadataCache,
-        CACHE_REBUILD[7].batchSize,
-      ),
-    {
-      timezone: "Asia/Kolkata",
-    },
-  );
-  return result;
-}
 
 function cacheCleanupAndRebuild(
   stockDataCache,
@@ -214,51 +59,47 @@ function cacheCleanupAndRebuild(
   requestCache,
 ) {
   const cronResult = [];
-  cronResult[0] = cacheClean_50(
-    stockDataCache,
-    stockMetadataCache,
-    requestCache,
-  );
-  cronResult[1] = cacheRebuild_NEXT50(
-    stockDataCache,
-    stockMetadataCache,
-    requestCache,
-  );
-  cronResult[2] = cacheRebuild_MID50(
-    stockDataCache,
-    stockMetadataCache,
-    requestCache,
-  );
-  cronResult[3] = cacheRebuild_MID100(
-    stockDataCache,
-    stockMetadataCache,
-    requestCache,
-  );
-  cronResult[4] = cacheRebuild_MID150(
-    stockDataCache,
-    stockMetadataCache,
-    requestCache,
-  );
-  cronResult[5] = cacheRebuild_SMALL50(
-    stockDataCache,
-    stockMetadataCache,
-    requestCache,
-  );
-  cronResult[6] = cacheRebuild_SMALL100(
-    stockDataCache,
-    stockMetadataCache,
-    requestCache,
-  );
-  cronResult[7] = cacheRebuild_SMALL250(
-    stockDataCache,
-    stockMetadataCache,
-    requestCache,
-  );
+
+  CACHE_REBUILD.forEach((jobConfig, i) => {
+    console.log(
+      `[Cron Init] Scheduling job for ${jobConfig.index} at "${jobConfig.schedule}"`,
+    );
+
+    const task = cron.schedule(
+      jobConfig.schedule,
+      () => {
+        if (jobConfig.batchSize) {
+          // It's a batch job (Large Index)
+          return runBatchJob(
+            jobConfig.index,
+            jobConfig.cache, // cacheRefresh boolean
+            stockDataCache,
+            stockMetadataCache,
+            jobConfig.batchSize,
+          );
+        } else {
+          // It's a standard job
+          return cacheJob(
+            jobConfig.index,
+            jobConfig.cache,
+            stockDataCache,
+            stockMetadataCache,
+            requestCache,
+          );
+        }
+      },
+      {
+        timezone: "Asia/Kolkata",
+      },
+    );
+
+    cronResult[i] = task;
+  });
 
   return cronResult;
 }
 
-module.exports = { cacheCleanupAndRebuild };
+module.exports = { cacheCleanupAndRebuild, CACHE_REBUILD };
 
 // cron.schedule(
 //   CACHE_REBUILD_SCHEDULE_MID150,
