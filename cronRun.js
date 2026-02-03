@@ -33,7 +33,7 @@ console.log(
   "\n",
   "NIFTY SMALLCAP 50:",
   cronResults[5].getStatus(),
-  "n",
+  "\n",
   "NIFTY SMALLCAP 100:",
   cronResults[6].getStatus(),
 );
