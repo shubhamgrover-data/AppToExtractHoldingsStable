@@ -217,5 +217,53 @@ function fetchAttributeFromUrl(element, attribute) {
     );
     throw new Error(`Element with attribute "${attribute}" not found`);
 }
+
+async function fetchNSEIndexSymbols(indexName) {
+    try {
+        const encodedIndex = encodeURIComponent(indexName);
+        const nseUrl = `https://www.nseindia.com/api/equity-stockIndices?index=${encodedIndex}`;
+
+        console.log(
+            `[helper] Fetching symbol list for "${indexName}" from ${nseUrl}`,
+        );
+
+        const response = await axios.get(nseUrl, {
+            timeout: 10000,
+            headers: {
+                "User-Agent":
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+                Accept: "application/json",
+                Referer: "https://www.nseindia.com/",
+            },
+        });
+
+        if (!response.data || !Array.isArray(response.data.data)) {
+            throw new Error("Invalid response structure from NSE API");
+        }
+
+        // Extract symbols, filtering out the index entry itself
+        const symbols = response.data.data
+            .filter((item) => {
+                if (item.priority === 1) return false;
+                if (item.symbol === indexName) return false;
+                return item.symbol && typeof item.symbol === "string";
+            })
+            .map((item) => item.symbol.trim())
+            .filter((symbol) => symbol.length > 0);
+
+        console.log(
+            `[helper] Found ${symbols.length} total symbols for "${indexName}"`,
+        );
+        return symbols;
+    } catch (error) {
+        console.error(`[helper] Failed to fetch symbol list: ${error.message}`);
+        throw error;
+    }
+}
+
 //extractInsightLogic("https://trendlyne.com/fundamentals/financials/1372/TCS/tata-consultancy-services-ltd/","data-stock-insight","","",);
-module.exports = { parseTableToJSON, extractInsightLogic };
+module.exports = {
+    parseTableToJSON,
+    extractInsightLogic,
+    fetchNSEIndexSymbols,
+};

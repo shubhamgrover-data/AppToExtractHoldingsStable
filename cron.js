@@ -3,13 +3,15 @@ const cron = require("node-cron");
 
 // Configuration for cache cleanup time (UTC)
 
-const CACHE_CLEANUP_SCHEDULE = "0 6 * * *"; // Midnight UTC
-const CACHE_REBUILD_SCHEDULE_NEXT50 = "15 6 * * *";
-const CACHE_REBUILD_SCHEDULE_MID50 = "30 6 * * *";
-const CACHE_REBUILD_SCHEDULE_MID100 = "45 6 * * *";
-const CACHE_REBUILD_SCHEDULE_MID150 = "0 7 * * *";
-const CACHE_REBUILD_SCHEDULE_SMALL50 = "15 7 * * *";
-const CACHE_REBUILD_SCHEDULE_SMALL100 = "30 7 * * *";
+const CACHE_CLEANUP_SCHEDULE = "0 3 * * *"; // Midnight UTC
+const CACHE_REBUILD_SCHEDULE_NEXT50 = "15 3 * * *";
+const CACHE_REBUILD_SCHEDULE_MID50 = "30 3 * * *";
+const CACHE_REBUILD_SCHEDULE_MID100 = "45 3 * * *";
+const CACHE_REBUILD_SCHEDULE_MID150 = "0 4 * * *";
+const CACHE_REBUILD_SCHEDULE_SMALL50 = "15 4 * * *";
+const CACHE_REBUILD_SCHEDULE_SMALL100 = "30 4 * * *";
+// Schedule: Every 30 minutes from 08:30 to 20:30 (Matches the cron.js requirement)
+const CACHE_REBUILD_SCHEDULE_SMALL250 = "*/30 5-8 * * *";
 
 const CACHE_REBUILD = [
   { schedule: CACHE_CLEANUP_SCHEDULE, index: "NIFTY 50", cache: true },
@@ -42,6 +44,12 @@ const CACHE_REBUILD = [
     schedule: CACHE_REBUILD_SCHEDULE_SMALL100,
     index: "NIFTY SMALLCAP 100",
     cache: false,
+  },
+  {
+    schedule: CACHE_REBUILD_SCHEDULE_SMALL250,
+    index: "NIFTY SMALLCAP 250",
+    cache: false,
+    batchSize: 50,
   },
 ];
 
@@ -178,6 +186,27 @@ function cacheRebuild_SMALL100(
   );
   return result;
 }
+function cacheRebuild_SMALL250(
+  stockDataCache,
+  stockMetadataCache,
+  requestCache,
+) {
+  const result = cron.schedule(
+    CACHE_REBUILD[7].schedule,
+    () =>
+      runBatchJob(
+        CACHE_REBUILD[7].index,
+        CACHE_REBUILD[7].cache,
+        stockDataCache,
+        stockMetadataCache,
+        CACHE_REBUILD[7].batchSize,
+      ),
+    {
+      timezone: "Asia/Kolkata",
+    },
+  );
+  return result;
+}
 
 function cacheCleanupAndRebuild(
   stockDataCache,
@@ -216,6 +245,11 @@ function cacheCleanupAndRebuild(
     requestCache,
   );
   cronResult[6] = cacheRebuild_SMALL100(
+    stockDataCache,
+    stockMetadataCache,
+    requestCache,
+  );
+  cronResult[7] = cacheRebuild_SMALL250(
     stockDataCache,
     stockMetadataCache,
     requestCache,

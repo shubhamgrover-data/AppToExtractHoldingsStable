@@ -1,4 +1,5 @@
 const axios = require("axios");
+const { fetchNSEIndexSymbols } = require("./helper.js");
 const cheerio = require("cheerio");
 const { extractInsightStandalone } = require("./standalone_extractor.js");
 
@@ -306,12 +307,14 @@ async function getStockMetadata(symbol, stockMetadataCache, options = {}) {
   }
 
   // Check cache before fetching
-  if (stockMetadataCache && stockMetadataCache.has(normalizedSymbol)) {
-    const cachedData = stockMetadataCache.get(normalizedSymbol);
-    console.log(
-      `[getStockMetadata] Cache HIT for ${normalizedSymbol}: pk=${cachedData.pk}, slug=${cachedData.slug}`,
-    );
-    return { symbol: normalizedSymbol, ...cachedData };
+  if (stockMetadataCache) {
+    const cachedData = await stockMetadataCache.get(normalizedSymbol);
+    if (cachedData) {
+      console.log(
+        `[getStockMetadata] Cache HIT for ${normalizedSymbol}: pk=${cachedData.pk}, slug=${cachedData.slug}`,
+      );
+      return { symbol: normalizedSymbol, ...cachedData };
+    }
   }
 
   console.log(
@@ -347,11 +350,7 @@ async function getStockMetadata(symbol, stockMetadataCache, options = {}) {
     // Update cache
     const metadata = { pk: String(pk), slug: String(slug) };
     if (stockMetadataCache) {
-      await redis.set(`CACHE:${index}`, JSON.stringify(data));
-      //stockMetadataCache.set(normalizedSymbol, metadata);
-       console.log(
-         `[getStockMetadata] Updated metdata cache for ${normalizedSymbol}`,
-       );
+      await stockMetadataCache.set(normalizedSymbol, metadata);
     }
 
     return { symbol: normalizedSymbol, ...metadata };
@@ -392,8 +391,8 @@ async function initiateBulkInsightExtraction(
   stockDataCache,
   options = {},
 ) {
-  if (!stockDataCache || !(stockDataCache instanceof Map)) {
-    throw new Error("stockDataCache must be a Map instance");
+  if (!stockDataCache) {
+    throw new Error("stockDataCache must be provided");
   }
 
   const settings = { ...DEFAULT_OPTIONS, ...options };
@@ -415,8 +414,8 @@ async function initiateBulkInsightExtraction(
       const normalizedSym = settings.normalizeSymbols
         ? normalizeSymbol(sym)
         : sym;
-      if (stockDataCache.has(normalizedSym)) {
-        const cached = stockDataCache.get(normalizedSym);
+      const cached = await stockDataCache.get(normalizedSym);
+      if (cached) {
         console.log(
           `[initiateBulkInsightExtraction] Found cache for ${normalizedSym} (timestamp: ${new Date(cached.timestamp).toISOString()})`,
         );
@@ -486,7 +485,7 @@ async function initiateBulkInsightExtraction(
 
   // Add cached results first
   for (const symbol of cachedSymbols) {
-    const cached = stockDataCache.get(symbol);
+    const cached = await stockDataCache.get(symbol);
     results[symbol] = cached.results;
     console.log(
       `[initiateBulkInsightExtraction] Using cached results for ${symbol}`,
@@ -506,7 +505,7 @@ async function initiateBulkInsightExtraction(
           data: null,
         }));
         // Store in cache even for mock data
-        stockDataCache.set(stock.Symbol, {
+        await stockDataCache.set(stock.Symbol, {
           results: results[stock.Symbol],
           timestamp: Date.now(),
         });
@@ -535,7 +534,7 @@ async function initiateBulkInsightExtraction(
 
           // Store each symbol's results in cache
           for (const [symbol, symbolResults] of Object.entries(batchResults)) {
-            stockDataCache.set(symbol, {
+            await stockDataCache.set(symbol, {
               results: symbolResults,
               timestamp: Date.now(),
             });
@@ -586,50 +585,13 @@ async function fetchAndProcessIndexStocks(
     throw new Error("Index name must be a non-empty string");
   }
 
-  if (!stockDataCache || !(stockDataCache instanceof Map)) {
-    throw new Error("stockDataCache must be a Map instance");
+  if (!stockDataCache) {
+    throw new Error("stockDataCache must be a instance");
   }
 
   try {
-    const encodedIndex = encodeURIComponent(indexName);
-    const nseUrl = `https://www.nseindia.com/api/equity-stockIndices?index=${encodedIndex}`;
-
-    console.log(
-      `[fetchAndProcessIndexStocks] Fetching symbols for index: "${indexName}" from ${nseUrl}`,
-    );
-
-    const response = await axios.get(nseUrl, {
-      timeout: DEFAULT_OPTIONS.requestTimeoutMs,
-      headers: {
-        "User-Agent": DEFAULT_OPTIONS.userAgent,
-        Accept: "application/json",
-        Referer: "https://www.nseindia.com/",
-      },
-    });
-
-    if (!response.data || !Array.isArray(response.data.data)) {
-      console.error(
-        `[fetchAndProcessIndexStocks] Invalid response structure for index: ${indexName}`,
-      );
-      throw new Error("Invalid response structure from NSE API");
-    }
-
-    const indexData = response.data;
-    console.log(
-      `[fetchAndProcessIndexStocks] Received ${indexData.data.length} items from NSE API`,
-    );
-
-    // Extract symbols, filtering out the index entry itself
-    const symbols = indexData.data
-      .filter((item) => {
-        // Skip the index entry (priority: 1 or symbol matching index name)
-        if (item.priority === 1) return false;
-        if (item.symbol === indexName) return false;
-        // Only include items with valid symbol
-        return item.symbol && typeof item.symbol === "string";
-      })
-      .map((item) => item.symbol.trim())
-      .filter((symbol) => symbol.length > 0);
+    // Simplified logic using shared helper
+    const symbols = await fetchNSEIndexSymbols(indexName);
 
     console.log(
       `[fetchAndProcessIndexStocks] Extracted ${symbols.length} stock symbols from index "${indexName}"`,

@@ -36,6 +36,9 @@ console.log(
   "\n",
   "NIFTY SMALLCAP 100:",
   cronResults[6].getStatus(),
+  "\n",
+  "NIFTY SMALLCAP 250:",
+  cronResults[7].getStatus(),
 );
 // keep process alive
 setInterval(() => {}, 1000);
