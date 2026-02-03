@@ -7,11 +7,10 @@ const CACHE_CLEANUP_SCHEDULE = "0 6 * * *"; // Midnight UTC
 const CACHE_REBUILD_SCHEDULE_NEXT50 = "15 6 * * *";
 const CACHE_REBUILD_SCHEDULE_MID50 = "30 6 * * *";
 const CACHE_REBUILD_SCHEDULE_MID100 = "45 6 * * *";
-const CACHE_REBUILD_SCHEDULE_MID150 = "0 7 * * *";
-const CACHE_REBUILD_SCHEDULE_SMALL50 = "15 7 * * *";
-const CACHE_REBUILD_SCHEDULE_SMALL100 = "30 7 * * *";
+const CACHE_REBUILD_SCHEDULE_MID150 = "55 6 * * *";
 // Schedule: Every 30 minutes from 08:30 to 20:30 (Matches the cron.js requirement)
-const CACHE_REBUILD_SCHEDULE_SMALL250 = "*/30 8-20 * * *";
+const CACHE_REBUILD_SCHEDULE_SMALL250 = "*/10 7 * * *";
+const CACHE_REBUILD_SCHEDULE_MICRO250 = "*/10 8 * * *";
 
 const CACHE_REBUILD = [
   { schedule: CACHE_CLEANUP_SCHEDULE, index: "NIFTY 50", cache: true },
@@ -35,20 +34,15 @@ const CACHE_REBUILD = [
     index: "NIFTY MIDCAP 150",
     cache: false,
   },
-
-  {
-    schedule: CACHE_REBUILD_SCHEDULE_SMALL50,
-    index: "NIFTY SMALLCAP 50",
-    cache: false,
-  },
-  {
-    schedule: CACHE_REBUILD_SCHEDULE_SMALL100,
-    index: "NIFTY SMALLCAP 100",
-    cache: false,
-  },
   {
     schedule: CACHE_REBUILD_SCHEDULE_SMALL250,
     index: "NIFTY SMALLCAP 250",
+    cache: false,
+    batchSize: 50,
+  },
+  {
+    schedule: CACHE_REBUILD_SCHEDULE_MICRO250,
+    index: "NIFTY MICROCAP 250",
     cache: false,
     batchSize: 50,
   },
