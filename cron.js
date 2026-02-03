@@ -1,6 +1,6 @@
 const { cacheJob } = require("./cache.js");
 const cron = require("node-cron");
-
+const runBatchJob = require("./fetchIndexStocksMoreThan50.js");
 // Configuration for cache cleanup time (UTC)
 
 const CACHE_CLEANUP_SCHEDULE = "0 6 * * *"; // Midnight UTC
