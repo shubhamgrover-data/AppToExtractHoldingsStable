@@ -155,6 +155,7 @@ function cacheRebuild_SMALL50(
       timezone: "Asia/Kolkata",
     },
   );
+  return result;
 }
 function cacheRebuild_SMALL100(
   stockDataCache,
@@ -175,6 +176,7 @@ function cacheRebuild_SMALL100(
       timezone: "Asia/Kolkata",
     },
   );
+  return result;
 }
 
 function cacheCleanupAndRebuild(
