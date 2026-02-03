@@ -1,4 +1,4 @@
-const { cacheCleanupAndRebuild } = require("./cron.js");
+const { cacheCleanupAndRebuild, CACHE_REBUILD } = require("./cron.js");
 const { CacheWrapper } = require("./cacheWrapper.js");
 // Separate cache for persistent stock data results
 // Map of symbol -> { results, timestamp }
@@ -12,33 +12,15 @@ const cronResults = cacheCleanupAndRebuild(
   stockMetadataCache,
   requestCache,
 );
-console.log(
-  "Cron worker status at",
-  new Date().toString(),
-  "\n",
-  "NIFTY 50:",
-  cronResults[0].getStatus(),
-  "\n",
-  "NIFTY NEXT 50:",
-  cronResults[1].getStatus(),
-  "\n",
-  "NIFTY MIDCAP 50:",
-  cronResults[2].getStatus(),
-  "\n",
-  "NIFTY MIDCAP 100:",
-  cronResults[3].getStatus(),
-  "\n",
-  "NIFTY MIDCAP 150:",
-  cronResults[4].getStatus(),
-  "\n",
-  "NIFTY SMALLCAP 50:",
-  cronResults[5].getStatus(),
-  "\n",
-  "NIFTY SMALLCAP 100:",
-  cronResults[6].getStatus(),
-  "\n",
-  "NIFTY SMALLCAP 250:",
-  cronResults[7].getStatus(),
-);
+
+console.log("Cron worker status at", new Date().toString());
+CACHE_REBUILD.forEach((job, index) => {
+  if (cronResults[index]) {
+    console.log(`${job.index}:`, cronResults[index].getStatus());
+  } else {
+    console.log(`${job.index}: [No active cron task created]`);
+  }
+});
+
 // keep process alive
 setInterval(() => {}, 1000);
