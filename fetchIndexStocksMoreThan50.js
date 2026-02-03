@@ -2,110 +2,127 @@ const { initiateBulkInsightExtraction } = require("./FetchStocksForIndices_v2.js
 const { CacheWrapper } = require("./cacheWrapper.js");
 const axios = require("axios");
 const cheerio = require("cheerio");
+const cron = require("node-cron");
 
 /**
- * Custom function to fetch index symbols from Trendlyne.
- * We need this because we can't modify existing code and need the list of symbols to batch them.
+ * State-managed Batch Processor
+ * Goal: Resilience against server crashes, configurable delays, and modular structure.
+ * 
+ * Logic:
+ * 1. Maintain a persistent state of processing in Redis (via CacheWrapper).
+ * 2. Break large indices into batches of 50.
+ * 3. Use a cron or a smarter interval to pick up "pending" batches.
+ * 4. If the server crashes, it resumes from the last successful batch.
  */
-async function fetchIndexSymbols(indexName) {
-  try {
-    const slug = indexName.replace(/ /g, "-").toLowerCase();
-    const url = `https://trendlyne.com/stock-screeners/index/${slug}/`;
-    console.log(`[fetchIndexSymbols] Fetching symbols from: ${url}`);
-    
-    const response = await axios.get(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-      },
-    });
-    
-    const $ = cheerio.load(response.data);
-    const symbols = [];
-    
-    // Try multiple selectors as Trendlyne's structure can vary
-    $("a.symbol-link, td.symbol a, .stock-name a").each((i, el) => {
-      const symbol = $(el).text().trim();
-      if (symbol && !symbols.includes(symbol)) {
-        symbols.push(symbol);
-      }
-    });
 
-    console.log(`[fetchIndexSymbols] Found ${symbols.length} symbols for ${indexName}`);
-    return symbols;
-  } catch (error) {
-    console.error(`[fetchIndexSymbols] Error:`, error.message);
-    return [];
-  }
+const batchStateCache = new CacheWrapper("batchProcessingState");
+
+async function fetchIndexSymbols(indexName) {
+    try {
+        const slug = indexName.replace(/ /g, "-").toLowerCase();
+        const url = `https://trendlyne.com/stock-screeners/index/${slug}/`;
+        const response = await axios.get(url, {
+            headers: {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            },
+        });
+        const $ = cheerio.load(response.data);
+        const symbols = [];
+        $("a.symbol-link, td.symbol a, .stock-name a").each((i, el) => {
+            const symbol = $(el).text().trim();
+            if (symbol && !symbols.includes(symbol)) symbols.push(symbol);
+        });
+        return symbols;
+    } catch (error) {
+        console.error(`[Batch Processor] Symbol fetch error:`, error.message);
+        return [];
+    }
 }
 
 /**
- * Main function to fetch and process index stocks in batches.
- * Condition: NO CHANGES to existing code.
- * Reuses: initiateBulkInsightExtraction from FetchStocksForIndices_v2.js
+ * Processes a single batch and updates persistent state.
  */
-async function fetchIndexStocksInBatches(indexName, intervalMinutes = 30) {
-  console.log(`[Batch Processor] Starting for ${indexName} at ${new Date().toISOString()}`);
-  
-  const stockDataCache = new CacheWrapper("stockDataCache");
-  const stockMetadataCache = new CacheWrapper("stockMetadataCache");
+async function processNextBatch(indexName) {
+    const stockDataCache = new CacheWrapper("stockDataCache");
+    const stockMetadataCache = new CacheWrapper("stockMetadataCache");
 
-  // 1. Get all symbols for the target index
-  const allSymbols = await fetchIndexSymbols(indexName);
-  
-  if (allSymbols.length === 0) {
-    console.error(`[Batch Processor] No symbols found for ${indexName}. Aborting.`);
-    return;
-  }
+    // Load or initialize state
+    let state = await batchStateCache.get(indexName);
+    const allSymbols = await fetchIndexSymbols(indexName);
 
-  const batchSize = 50;
-  const totalBatches = Math.ceil(allSymbols.length / batchSize);
-  
-  console.log(`[Batch Processor] Total symbols: ${allSymbols.length} | Batch size: ${batchSize} | Total batches: ${totalBatches}`);
+    if (allSymbols.length === 0) return;
 
-  for (let i = 0; i < totalBatches; i++) {
-    const start = i * batchSize;
-    const end = Math.min(start + batchSize, allSymbols.length);
+    if (!state || state.allSymbolsHash !== allSymbols.join(',')) {
+        state = {
+            currentIndex: 0,
+            batchSize: 50,
+            totalSymbols: allSymbols.length,
+            allSymbolsHash: allSymbols.join(','),
+            completed: false,
+            lastRun: null
+        };
+    }
+
+    if (state.completed && (Date.now() - (state.lastRun || 0) < 24 * 60 * 60 * 1000)) {
+        console.log(`[Batch Processor] ${indexName} already completed today.`);
+        return;
+    }
+
+    const start = state.currentIndex;
+    const end = Math.min(start + state.batchSize, allSymbols.length);
     const batchSymbols = allSymbols.slice(start, end);
-    
-    console.log(`[Batch Processor] Processing batch ${i + 1}/${totalBatches} (${batchSymbols.length} symbols)`);
+
+    console.log(`[Batch Processor] ${indexName}: Processing batch ${start}-${end} of ${allSymbols.length}`);
 
     try {
-      /**
-       * We reuse initiateBulkInsightExtraction which is the core logic in FetchStocksForIndices_v2.js
-       * it takes (symbols, stockDataCache, options)
-       */
-      const result = await initiateBulkInsightExtraction(
-        batchSymbols,
-        stockDataCache,
-        {
-          stockMetadataCache,
-          invalidateCache: false, // Don't clear cache, we are building it
-          metadataConcurrency: 10,
-          batchSize: 10,
-          batchConcurrency: 1,
+        await initiateBulkInsightExtraction(batchSymbols, stockDataCache, {
+            stockMetadataCache,
+            invalidateCache: false,
+            metadataConcurrency: 10,
+            batchSize: 10,
+            batchConcurrency: 1,
+        });
+
+        // Update state
+        state.currentIndex = end;
+        state.lastRun = Date.now();
+        if (state.currentIndex >= allSymbols.length) {
+            state.completed = true;
+            state.currentIndex = 0; // Reset for next cycle (e.g. tomorrow)
         }
-      );
-
-      console.log(`[Batch Processor] Batch ${i + 1} Done: Processed ${result.processedSymbols} symbols.`);
+        await batchStateCache.set(indexName, state);
+        console.log(`[Batch Processor] ${indexName}: Batch successful. Progress: ${state.currentIndex}/${allSymbols.length}`);
     } catch (error) {
-      console.error(`[Batch Processor] Batch ${i + 1} Failed:`, error.message);
+        console.error(`[Batch Processor] ${indexName}: Batch failed. Will retry on next run.`, error.message);
     }
-
-    // Wait if there are more batches
-    if (i < totalBatches - 1) {
-      console.log(`[Batch Processor] Sleeping for ${intervalMinutes} minutes...`);
-      await new Promise(resolve => setTimeout(resolve, intervalMinutes * 60 * 1000));
-    }
-  }
-
-  console.log(`[Batch Processor] Completed all ${totalBatches} batches for ${indexName}`);
 }
 
-module.exports = { fetchIndexStocksInBatches };
+/**
+ * Entry point that sets up a resilient schedule.
+ * Instead of one long loop, we run a task every X minutes.
+ * If the server restarts, the task picks up where it left off.
+ */
+function setupResilientBatchProcessing(indexName, intervalMinutes = 30) {
+    console.log(`[Batch Processor] Setting up resilient processing for ${indexName} every ${intervalMinutes}m`);
+    
+    // Immediate run
+    processNextBatch(indexName);
 
-// Usage example (standalone):
+    // Schedule subsequent runs
+    cron.schedule(`*/${intervalMinutes} * * * *`, () => {
+        console.log(`[Batch Processor] Scheduled run for ${indexName}`);
+        processNextBatch(indexName);
+    });
+}
+
+module.exports = { 
+    fetchIndexSymbols, 
+    processNextBatch, 
+    setupResilientBatchProcessing 
+};
+
 if (require.main === module) {
     const index = process.argv[2] || "NIFTY SMALLCAP 250";
-    const delay = parseInt(process.argv[3]) || 30;
-    fetchIndexStocksInBatches(index, delay);
+    const interval = parseInt(process.argv[3]) || 30;
+    setupResilientBatchProcessing(index, interval);
 }
