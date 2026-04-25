@@ -1,6 +1,6 @@
 const { redisClient } = require("./redis.js");
 
-const REDISSWITCH = true;
+const REDISSWITCH = false;
 
 class CacheWrapper {
   constructor(name, internalMap = new Map()) {
