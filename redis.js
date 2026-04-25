@@ -1,8 +1,9 @@
 const Redis = require("ioredis");
 
-const redisClient = new Redis({
-  host: process.env.REDISURL,
-  port: 6379,
+const redisClient = new Redis(process.env.REDISURL,{
+    // Add these for better serverless debugging
+    connectTimeout: 10000, // Wait 10s before failing
+    maxRetriesPerRequest: 1, // Don't let it loop forever in a serverless function
 });
 
 redisClient.on("connect", () => {
@@ -10,6 +11,7 @@ redisClient.on("connect", () => {
 });
 
 redisClient.on("error", () => {
-  //console.log("Redis connection error");
+  console.error("❌ Redis Error:", err.message);
+    //console.error("Full Error Stack:", err.stack);
 });
 module.exports = { redisClient };
