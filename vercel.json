@@ -4,5 +4,6 @@
     { "source": "/extract-data", "destination": "/app.js" },
     { "source": "/extract", "destination": "/app.js" },
     { "source": "/extractdata_post", "destination": "/app.js" }
+    { "source": "/extractinsight", "destination": "/app.js" }
   ]
 }
