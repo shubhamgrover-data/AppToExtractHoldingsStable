@@ -30,7 +30,7 @@ class CacheWrapper {
     }
   }
 
-  async set(key, value, ttl = 86400) {
+  async set(key, value, ttl = -1) {
     if (REDISSWITCH) {
       try {
         console.log(`[CacheWrapper] ${this.name} Redis SET for ${key}`);
