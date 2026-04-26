@@ -30,15 +30,16 @@ class CacheWrapper {
     }
   }
 
-  async set(key, value, ttl = -1) {
+  async set(key, value, ttl) {
     if (REDISSWITCH) {
       try {
         console.log(`[CacheWrapper] ${this.name} Redis SET for ${key}`);
         await redisClient.set(
           `${this.name}:${key}`,
-          JSON.stringify(value),
-          "EX",
-          ttl,
+          JSON.stringify(value)
+          //,
+          //"EX",
+          //ttl,
         );
       } catch (err) {
         console.error(`[CacheWrapper] ${this.name} Redis SET error:`, err);
