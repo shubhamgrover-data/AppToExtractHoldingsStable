@@ -2,11 +2,16 @@ name: Scheduled Index Extraction
 
 on:
   schedule:
-    - cron: '30 0 * * *'  # 06:00 AM IST - NIFTY 50
-    - cron: '50 0 * * *'  # 06:20 AM IST - NIFTY NEXT 50
-    - cron: '10 1 * * *'  # 06:40 AM IST - NIFTY MIDCAP 50
-    - cron: '30 1 * * *'  # 07:00 AM IST - NIFTY MIDCAP 100
-    - cron: '50 1 * * *'  # 07:20 AM IST - NIFTY MIDCAP 150
+    # 06:00 AM IST (00:30 UTC) - NIFTY 50
+    - cron: '30 0 * * *'
+    # 06:20 AM IST (00:50 UTC) - NIFTY NEXT 50
+    - cron: '50 0 * * *'
+    # 06:40 AM IST (01:10 UTC) - NIFTY MIDCAP 50
+    - cron: '10 1 * * *'
+    # 07:00 AM IST (01:30 UTC) - NIFTY MIDCAP 100
+    - cron: '30 1 * * *'
+    # 07:20 AM IST (01:50 UTC) - NIFTY MIDCAP 150
+    - cron: '50 1 * * *'
     # Smallcap 250 Starts after Midcap 150 finishes
     - cron: '20 2 * * *'  # 07:50 AM IST - Smallcap Run 1
     - cron: '35 2 * * *'  # 08:05 AM IST - Smallcap Run 2
@@ -14,7 +19,23 @@ on:
     - cron: '05 3 * * *'  # 08:35 AM IST - Smallcap Run 4
     - cron: '20 3 * * *'  # 08:50 AM IST - Smallcap Run 5
   
-  workflow_dispatch: 
+  # DROPDOWN SELECTOR FOR TESTING
+  workflow_dispatch:
+    inputs:
+      test_index:
+        description: 'Select index to test (Select ALL for a full run)'
+        required: true
+        default: 'ALL'
+        type: choice
+        options:
+          - ALL
+          - "NIFTY 50"
+          - "NIFTY NEXT 50"
+          - "NIFTY MIDCAP 50"
+          - "NIFTY MIDCAP 100"
+          - "NIFTY MIDCAP 150"
+          - "NIFTY SMALLCAP 250"
+          - "NIFTY MICROCAP 250"
 
 jobs:
   run-cron-jobs:
@@ -45,32 +66,27 @@ jobs:
           - index: "NIFTY SMALLCAP 250"
             cron: "20 3 * * *"
 
-
-
-
-
     steps:
       - name: Checkout Code
-        if: ${{ github.event_name == 'workflow_dispatch' || github.event.schedule == matrix.cron }}
+        if: ${{ (github.event_name == 'workflow_dispatch' && (inputs.test_index == 'ALL' || inputs.test_index == matrix.index)) || (github.event_name == 'schedule' && github.event.schedule == matrix.cron) }}
         uses: actions/checkout@v4
 
       - name: Setup Node.js
-        if: ${{ github.event_name == 'workflow_dispatch' || github.event.schedule == matrix.cron }}
+        if: ${{ (github.event_name == 'workflow_dispatch' && (inputs.test_index == 'ALL' || inputs.test_index == matrix.index)) || (github.event_name == 'schedule' && github.event.schedule == matrix.cron) }}
         uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: 'npm'
 
       - name: Install Dependencies
-        if: ${{ github.event_name == 'workflow_dispatch' || github.event.schedule == matrix.cron }}
+        if: ${{ (github.event_name == 'workflow_dispatch' && (inputs.test_index == 'ALL' || inputs.test_index == matrix.index)) || (github.event_name == 'schedule' && github.event.schedule == matrix.cron) }}
         run: npm ci
 
       - name: Execute Cron Job
-        if: ${{ github.event_name == 'workflow_dispatch' || github.event.schedule == matrix.cron }}
+        if: ${{ (github.event_name == 'workflow_dispatch' && (inputs.test_index == 'ALL' || inputs.test_index == matrix.index)) || (github.event_name == 'schedule' && github.event.schedule == matrix.cron) }}
         env:
           MODE: "GITHUB"
           INDEX: ${{ matrix.index }}
           REDISURL: ${{ secrets.REDISURL }}
-          # Pass the specific schedule so your code knows which 50 stocks to pick
           SCHEDULE_TIME: ${{ github.event.schedule }}
         run: node cronRun.js
