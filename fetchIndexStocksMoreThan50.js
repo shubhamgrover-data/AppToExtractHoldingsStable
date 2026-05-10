@@ -123,8 +123,8 @@ async function runBatchJob(
             {
                 stockMetadataCache,
                 invalidateCache: cacheRefresh, // Force fetch since we know they are stale/missing
-                metadataConcurrency: 10,
-                batchSize: 10,
+                metadataConcurrency: 5,
+                batchSize: 5,
                 batchConcurrency: 1,
             },
         );
