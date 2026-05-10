@@ -45,26 +45,28 @@ jobs:
           - index: "NIFTY SMALLCAP 250"
             cron: "20 3 * * *"
 
-    if: |
-      github.event_name == 'workflow_dispatch' ||
-      github.event.schedule == matrix.cron
+
 
 
 
     steps:
       - name: Checkout Code
+        if: ${{ github.event_name == 'workflow_dispatch' || github.event.schedule == matrix.cron }}
         uses: actions/checkout@v4
 
       - name: Setup Node.js
+        if: ${{ github.event_name == 'workflow_dispatch' || github.event.schedule == matrix.cron }}
         uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: 'npm'
 
       - name: Install Dependencies
+        if: ${{ github.event_name == 'workflow_dispatch' || github.event.schedule == matrix.cron }}
         run: npm ci
 
       - name: Execute Cron Job
+        if: ${{ github.event_name == 'workflow_dispatch' || github.event.schedule == matrix.cron }}
         env:
           MODE: "GITHUB"
           INDEX: ${{ matrix.index }}
