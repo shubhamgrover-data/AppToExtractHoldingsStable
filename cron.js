@@ -54,42 +54,59 @@ function cacheCleanupAndRebuild(
   requestCache,
 ) {
   const cronResult = [];
+  const MODE = process.env.MODE || "GITHUB";
 
-  CACHE_REBUILD.forEach((jobConfig, i) => {
-    console.log(
-      `[Cron Init] Scheduling job for ${jobConfig.index} at "${jobConfig.schedule}"`,
-    );
 
-    const task = cron.schedule(
-      jobConfig.schedule,
-      () => {
-        if (jobConfig.batchSize) {
-          // It's a batch job (Large Index)
-          return runBatchJob(
-            jobConfig.index,
-            jobConfig.cache, // cacheRefresh boolean
-            stockDataCache,
-            stockMetadataCache,
-            jobConfig.batchSize,
-          );
-        } else {
-          // It's a standard job
-          return cacheJob(
-            jobConfig.index,
-            jobConfig.cache,
-            stockDataCache,
-            stockMetadataCache,
-            requestCache,
-          );
-        }
-      },
-      {
-        timezone: "Asia/Kolkata",
-      },
-    );
 
-    cronResult[i] = task;
-  });
+  const runJobLogic = (jobConfig) => {
+    if (jobConfig.batchSize) {
+      // It's a batch job (Large Index)
+      return runBatchJob(
+        jobConfig.index,
+        jobConfig.cache, // cacheRefresh boolean
+        stockDataCache,
+        stockMetadataCache,
+        jobConfig.batchSize,
+      );
+    } else {
+      // It's a standard job
+      return cacheJob(
+        jobConfig.index,
+        jobConfig.cache,
+        stockDataCache,
+        stockMetadataCache,
+        requestCache,
+      );
+    }
+  };
+
+  if (MODE === "GITHUB") {
+
+    console.log(`[Cron Init] Running job immediately in GITHUB mode for ${process.env.INDEX}...`);
+    const jobConfig = CACHE_REBUILD.find((jobConfig) => jobConfig.index === process.env.INDEX);
+    runJobLogic(jobConfig);
+    // Provide a mock task object so caller like cronRun.js doesn't fail on getStatus()
+    const jobIndex = CACHE_REBUILD.findIndex((jobConfig) => jobConfig.index === process.env.INDEX);
+    cronResult[jobIndex] = {
+      getStatus: () => "Executed immediately (GITHUB mode)",
+      start: () => { },
+      stop: () => { },
+    };
+  } else {
+    CACHE_REBUILD.forEach((jobConfig, i) => {
+      console.log(
+        `[Cron Init] Scheduling job for ${jobConfig.index} at "${jobConfig.schedule}"`,
+      );
+      const task = cron.schedule(
+        jobConfig.schedule,
+        () => runJobLogic(jobConfig),
+        {
+          timezone: "Asia/Kolkata",
+        },
+      );
+      cronResult[i] = task;
+    });
+  }
 
   return cronResult;
 }

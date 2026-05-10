@@ -1,0 +1,74 @@
+name: Scheduled Index Extraction
+
+on:
+  schedule:
+    - cron: '30 0 * * *'  # 06:00 AM IST - NIFTY 50
+    - cron: '50 0 * * *'  # 06:20 AM IST - NIFTY NEXT 50
+    - cron: '10 1 * * *'  # 06:40 AM IST - NIFTY MIDCAP 50
+    - cron: '30 1 * * *'  # 07:00 AM IST - NIFTY MIDCAP 100
+    - cron: '50 1 * * *'  # 07:20 AM IST - NIFTY MIDCAP 150
+    # Smallcap 250 Starts after Midcap 150 finishes
+    - cron: '20 2 * * *'  # 07:50 AM IST - Smallcap Run 1
+    - cron: '35 2 * * *'  # 08:05 AM IST - Smallcap Run 2
+    - cron: '50 2 * * *'  # 08:20 AM IST - Smallcap Run 3
+    - cron: '05 3 * * *'  # 08:35 AM IST - Smallcap Run 4
+    - cron: '20 3 * * *'  # 08:50 AM IST - Smallcap Run 5
+  
+  workflow_dispatch: 
+
+jobs:
+  run-cron-jobs:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - index: "NIFTY 50"
+            cron: "30 0 * * *"
+          - index: "NIFTY NEXT 50"
+            cron: "50 0 * * *"
+          - index: "NIFTY MIDCAP 50"
+            cron: "10 1 * * *"
+          - index: "NIFTY MIDCAP 100"
+            cron: "30 1 * * *"
+          - index: "NIFTY MIDCAP 150"
+            cron: "50 1 * * *"
+          # 5 Iterations for Smallcap 250
+          - index: "NIFTY SMALLCAP 250"
+            cron: "20 2 * * *"
+          - index: "NIFTY SMALLCAP 250"
+            cron: "35 2 * * *"
+          - index: "NIFTY SMALLCAP 250"
+            cron: "50 2 * * *"
+          - index: "NIFTY SMALLCAP 250"
+            cron: "05 3 * * *"
+          - index: "NIFTY SMALLCAP 250"
+            cron: "20 3 * * *"
+
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      github.event.schedule == matrix.cron
+
+
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Execute Cron Job
+        env:
+          MODE: "GITHUB"
+          INDEX: ${{ matrix.index }}
+          REDISURL: ${{ secrets.REDISURL }}
+          # Pass the specific schedule so your code knows which 50 stocks to pick
+          SCHEDULE_TIME: ${{ github.event.schedule }}
+        run: node cronRun.js

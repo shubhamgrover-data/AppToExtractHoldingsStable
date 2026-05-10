@@ -36,7 +36,6 @@ Preferred communication style: Simple, everyday language.
 - **Axios**: HTTP client for fetching web pages
 - **Cheerio**: Fast HTML parsing and DOM manipulation
 - **JSDOM**: Full DOM simulation for complex table parsing
-- **Puppeteer**: Available for JavaScript-rendered pages (headless browser)
 
 ### Design Decisions
 1. **Dual parsing approach**: Uses Cheerio for speed on simple pages, JSDOM for complex table structures requiring full DOM simulation
@@ -51,7 +50,6 @@ Preferred communication style: Simple, everyday language.
 - **axios** (v1.11.0): HTTP client for fetching pages
 - **cheerio** (v1.1.2): jQuery-like HTML parsing
 - **jsdom** (v27.4.0): DOM simulation for complex parsing
-- **puppeteer** (v24.15.0): Headless Chrome for JS-rendered content
 - **cors** (v2.8.5): CORS middleware
 
 ### Runtime Configuration

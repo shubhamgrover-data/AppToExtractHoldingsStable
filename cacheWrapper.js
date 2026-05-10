@@ -1,6 +1,6 @@
 const { redisClient } = require("./redis.js");
 
-const REDISSWITCH = process.env.REDISURL==""?false:true;
+const REDISSWITCH = process.env.REDISURL == "" ? false : true;
 
 class CacheWrapper {
   constructor(name, internalMap = new Map()) {
@@ -30,16 +30,15 @@ class CacheWrapper {
     }
   }
 
-  async set(key, value, ttl) {
+  async set(key, value, ttl = 86400) {
     if (REDISSWITCH) {
       try {
         console.log(`[CacheWrapper] ${this.name} Redis SET for ${key}`);
         await redisClient.set(
           `${this.name}:${key}`,
-          JSON.stringify(value)
-          //,
-          //"EX",
-          //ttl,
+          JSON.stringify(value),
+          "EX",
+          ttl
         );
       } catch (err) {
         console.error(`[CacheWrapper] ${this.name} Redis SET error:`, err);
