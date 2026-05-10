@@ -22,5 +22,7 @@ CACHE_REBUILD.forEach((job, index) => {
   }
 });
 
-// keep process alive
-setInterval(() => {}, 1000);
+// keep process alive (only needed for server/Vercel mode, not GitHub Actions)
+if (process.env.MODE !== "GITHUB") {
+  setInterval(() => {}, 1000);
+}
