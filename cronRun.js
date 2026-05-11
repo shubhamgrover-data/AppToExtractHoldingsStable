@@ -7,42 +7,22 @@ const stockDataCache = new CacheWrapper("stockDataCache");
 const stockMetadataCache = new CacheWrapper("stockMetadataCache");
 // In-memory cache for background requests
 const requestCache = new CacheWrapper("requestCache");
-const runJobs = async () => {
-  const cronResults = cacheCleanupAndRebuild(
-    stockDataCache,
-    stockMetadataCache,
-    requestCache,
-  );
+const cronResults = cacheCleanupAndRebuild(
+  stockDataCache,
+  stockMetadataCache,
+  requestCache,
+);
 
-  console.log("Cron worker status at", new Date().toString());
-  CACHE_REBUILD.forEach((job, index) => {
-    if (cronResults[index]) {
-      console.log(`${job.index}:`, cronResults[index].getStatus());
-    } else {
-      console.log(`${job.index}: [No active cron task created]`);
-    }
-  });
-
-  // In GITHUB mode: await the job promise, then exit to kill the ioredis socket
-  if (process.env.MODE === "GITHUB") {
-    const jobIndex = CACHE_REBUILD.findIndex((j) => j.index === process.env.INDEX);
-    if (jobIndex !== -1 && cronResults[jobIndex] && cronResults[jobIndex].promise) {
-      try {
-        await cronResults[jobIndex].promise;
-        console.log(`[CronRun] Job for ${process.env.INDEX} completed. Exiting.`);
-        process.exit(0);
-      } catch (err) {
-        console.error(`[CronRun] Job failed:`, err);
-        process.exit(1);
-      }
-    } else {
-      console.log(`[CronRun] No matching job found for INDEX=${process.env.INDEX}. Exiting.`);
-      process.exit(0);
-    }
+console.log("Cron worker status at", new Date().toString());
+CACHE_REBUILD.forEach((job, index) => {
+  if (cronResults[index]) {
+    console.log(`${job.index}:`, cronResults[index].getStatus());
   } else {
-    // Server mode: keep process alive for cron.schedule to fire
-    setInterval(() => { }, 1000);
+    console.log(`${job.index}: [No active cron task created]`);
   }
-};
+});
 
-runJobs();
+// keep process alive (only needed for server/Vercel mode, not GitHub Actions)
+if (process.env.MODE !== "GITHUB") {
+  setInterval(() => {}, 1000);
+}

@@ -84,12 +84,11 @@ function cacheCleanupAndRebuild(
 
     console.log(`[Cron Init] Running job immediately in GITHUB mode for ${process.env.INDEX}...`);
     const jobConfig = CACHE_REBUILD.find((jobConfig) => jobConfig.index === process.env.INDEX);
-    const jobPromise = runJobLogic(jobConfig); // Capture the Promise instead of discarding it
+    runJobLogic(jobConfig);
     // Provide a mock task object so caller like cronRun.js doesn't fail on getStatus()
     const jobIndex = CACHE_REBUILD.findIndex((jobConfig) => jobConfig.index === process.env.INDEX);
     cronResult[jobIndex] = {
       getStatus: () => "Executed immediately (GITHUB mode)",
-      promise: jobPromise, // Expose the Promise so cronRun.js can await it
       start: () => { },
       stop: () => { },
     };
