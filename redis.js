@@ -1,17 +1,29 @@
-const Redis = require("ioredis");
+const RedisTCP = require("ioredis");
+const { Redis: RedisHTTP } = require("@upstash/redis");
 
-const redisClient = new Redis(process.env.REDISURL, {
-  // Add these for better serverless debugging
-  connectTimeout: 10000, // Wait 10s before failing
-  maxRetriesPerRequest: 1, // Don't let it loop forever in a serverless function
-});
+const REDISCONNECTION = (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) ? "HTTP" : "TCP";
 
-redisClient.on("connect", () => {
-  console.log("Redis connected");
-});
+let redisClient;
 
-redisClient.on("error", (err) => {
-  console.error("❌ Redis Error:", err.message);
-  //console.error("Full Error Stack:", err.stack);
-});
-module.exports = { redisClient };
+if (REDISCONNECTION === "HTTP") {
+  redisClient = new RedisHTTP({
+    url: process.env.UPSTASH_REDIS_REST_URL,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN,
+  });
+  console.log("Redis Mode: HTTP (Upstash REST)");
+} else {
+  redisClient = new RedisTCP(process.env.REDISURL, {
+    connectTimeout: 10000,
+    maxRetriesPerRequest: 1,
+  });
+
+  redisClient.on("connect", () => {
+    console.log("Redis Mode: TCP (ioredis) - Connected");
+  });
+
+  redisClient.on("error", (err) => {
+    console.error("❌ Redis TCP Error:", err.message);
+  });
+}
+
+module.exports = { redisClient, REDISCONNECTION };
